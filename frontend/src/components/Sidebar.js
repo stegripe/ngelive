@@ -36,7 +36,7 @@ export default function Sidebar() {
         </ul>
       </nav>
       <div className="p-4 border-t border-gray-700 text-xs text-gray-400">
-        &copy; {new Date().getFullYear()} Stegripe Development. All rights reserved.
+        &copy; {new Date().getFullYear()} Stegripe Development.
       </div>
     </aside>
   );
