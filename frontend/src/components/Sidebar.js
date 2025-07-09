@@ -4,7 +4,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed">
       <div className="p-6 font-bold text-2xl border-b border-gray-700">
-        YT Streamer
+        Ngelive
       </div>
       <nav className="flex-1 px-4 py-6">
         <ul className="space-y-2">
@@ -36,7 +36,7 @@ export default function Sidebar() {
         </ul>
       </nav>
       <div className="p-4 border-t border-gray-700 text-xs text-gray-400">
-        &copy; {new Date().getFullYear()} Stegripe
+        &copy; {new Date().getFullYear()} Stegripe Development. All rights reserved.
       </div>
     </aside>
   );
