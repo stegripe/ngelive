@@ -24,6 +24,11 @@ export default function Sidebar() {
             </Link>
           </li>
           <li>
+            <Link href="/settings" className="block py-2 px-4 rounded hover:bg-gray-700">
+              Settings
+            </Link>
+          </li>
+          <li>
             <Link href="/logs" className="block py-2 px-4 rounded hover:bg-gray-700">
               Logs
             </Link>

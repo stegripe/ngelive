@@ -98,7 +98,7 @@ app.post('/api/stream/start', (req, res) => {
   if (!playlist.length) return res.status(400).json({ error: 'Playlist kosong' });
 
   // Ganti dengan RTMP key kamu
-  const RTMP_URL = process.env.RTMP_URL || "rtmp://a.rtmp.youtube.com/live2/r47d-ufwb-2va3-gfhh-6k7h";
+  const RTMP_URL = getRtmpUrl();
 
   // Gabungkan video jadi satu input (sederhana, loop jika habis—atau pakai concat)
   // Contoh: mainkan 1 file terus-menerus (loop)
@@ -140,6 +140,30 @@ app.post('/api/stream/stop', (req, res) => {
 // API: Status streaming
 app.get('/api/stream/status', (req, res) => {
   res.json({ running: !!ffmpegProcess });
+});
+
+const RTMP_FILE = path.join(__dirname, 'rtmp_url.txt');
+
+// Helper get/set RTMP URL
+function getRtmpUrl() {
+  if (!fs.existsSync(RTMP_FILE)) return "";
+  return fs.readFileSync(RTMP_FILE, "utf8").trim();
+}
+function setRtmpUrl(url) {
+  fs.writeFileSync(RTMP_FILE, url.trim());
+}
+
+// API: Get RTMP URL
+app.get('/api/rtmp', (req, res) => {
+  res.json({ url: getRtmpUrl() });
+});
+
+// API: Set RTMP URL
+app.post('/api/rtmp', (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== "string") return res.status(400).json({ error: "URL tidak valid" });
+  setRtmpUrl(url);
+  res.json({ success: true });
 });
 
 app.listen(PORT, () => {
