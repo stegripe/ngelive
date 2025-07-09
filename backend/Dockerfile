@@ -6,10 +6,10 @@ WORKDIR /app
 RUN apk add --no-cache ffmpeg
 
 COPY package.json ./
-RUN npm install
+RUN pnpm install
 
 COPY . .
 
 EXPOSE 5000
 
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]
