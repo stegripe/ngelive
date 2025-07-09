@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -73,6 +74,72 @@ app.post('/api/playlist', (req, res) => {
   if (!Array.isArray(playlist)) return res.status(400).json({ error: "Invalid" });
   setPlaylist(playlist);
   res.json({ success: true });
+});
+
+// Tambahkan di bagian atas, setelah require dan sebelum app.listen
+
+let ffmpegProcess = null;
+
+// Helper untuk dapatkan playlist terbaru
+function getCurrentPlaylist() {
+  if (fs.existsSync(PLAYLIST_FILE)) {
+    return JSON.parse(fs.readFileSync(PLAYLIST_FILE, "utf8"));
+  } else {
+    // fallback: semua video
+    return fs.readdirSync(VIDEO_DIR).filter(f => f.endsWith('.mp4'));
+  }
+}
+
+// API: Mulai streaming
+app.post('/api/stream/start', (req, res) => {
+  if (ffmpegProcess) return res.status(400).json({ error: 'Streaming sudah berjalan' });
+
+  const playlist = getCurrentPlaylist();
+  if (!playlist.length) return res.status(400).json({ error: 'Playlist kosong' });
+
+  // Ganti dengan RTMP key kamu
+  const RTMP_URL = process.env.RTMP_URL || "rtmp://a.rtmp.youtube.com/live2/r47d-ufwb-2va3-gfhh-6k7h";
+
+  // Gabungkan video jadi satu input (sederhana, loop jika habis—atau pakai concat)
+  // Contoh: mainkan 1 file terus-menerus (loop)
+  // Untuk playlist: bisa pakai concat.txt, atau spawn ffmpeg per file, atau advanced playlist handler
+
+  // Simple: putar 1 file saja
+  const file = path.join(VIDEO_DIR, playlist[0]);
+  const ffmpegArgs = [
+    '-re', '-stream_loop', '-1', '-i', file,
+    '-c:v', 'libx264', '-preset', 'veryfast', '-maxrate', '3000k', '-bufsize', '6000k',
+    '-pix_fmt', 'yuv420p', '-g', '50', '-c:a', 'aac', '-b:a', '160k',
+    '-ar', '44100', '-f', 'flv', RTMP_URL
+  ];
+
+  ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+
+  // Log output ke file
+  const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
+  ffmpegProcess.stdout.pipe(logStream);
+  ffmpegProcess.stderr.pipe(logStream);
+
+  ffmpegProcess.on('exit', (code, signal) => {
+    ffmpegProcess = null;
+    logStream.write(`\n[ffmpeg stopped] code: ${code}, signal: ${signal}\n`);
+    logStream.end();
+  });
+
+  res.json({ success: true });
+});
+
+// API: Stop streaming
+app.post('/api/stream/stop', (req, res) => {
+  if (!ffmpegProcess) return res.status(400).json({ error: 'Tidak ada stream aktif' });
+  ffmpegProcess.kill('SIGTERM');
+  ffmpegProcess = null;
+  res.json({ success: true });
+});
+
+// API: Status streaming
+app.get('/api/stream/status', (req, res) => {
+  res.json({ running: !!ffmpegProcess });
 });
 
 app.listen(PORT, () => {
