@@ -101,3 +101,6 @@ dist
 
 # Videos files
 *videos*
+
+# MariaDB data directory
+mariadb_data
