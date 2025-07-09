@@ -1,5 +1,5 @@
 {
-  "name": "ytstream-frontend",
+  "name": "nglive-frontend",
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
