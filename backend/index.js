@@ -51,6 +51,30 @@ app.get('/api/logs', (req, res) => {
   res.sendFile(LOG_FILE);
 });
 
+const PLAYLIST_FILE = path.join(__dirname, 'playlist.json');
+
+// Helper untuk baca/tulis playlist
+function getPlaylist() {
+  if (!fs.existsSync(PLAYLIST_FILE)) return [];
+  return JSON.parse(fs.readFileSync(PLAYLIST_FILE, "utf8"));
+}
+function setPlaylist(arr) {
+  fs.writeFileSync(PLAYLIST_FILE, JSON.stringify(arr, null, 2));
+}
+
+// API get playlist
+app.get('/api/playlist', (req, res) => {
+  res.json(getPlaylist());
+});
+
+// API set playlist (urutan)
+app.post('/api/playlist', (req, res) => {
+  const { playlist } = req.body;
+  if (!Array.isArray(playlist)) return res.status(400).json({ error: "Invalid" });
+  setPlaylist(playlist);
+  res.json({ success: true });
+});
+
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
