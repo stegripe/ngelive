@@ -108,23 +108,30 @@ app.post('/api/rtmp', (req, res) => {
   res.json({ success: true });
 });
 
+// Streaming logic
 let ffmpegProcess = null;
+let shouldLoopStream = false;
 
-// API: Mulai streaming (mode playlist concat)
-app.post('/api/stream/start', (req, res) => {
-  if (ffmpegProcess) return res.status(400).json({ error: 'Streaming sudah berjalan' });
+// Escape for ffmpeg concat (Aman untuk semua simbol, hanya petik satu yang WAJIB di-escape, lainnya aman)
+function escapeForFfmpegConcat(filePath) {
+  // Escape single quotes for ffmpeg concat only
+  // Path must be inside single quotes, single quote in path must be: '\'' (ffmpeg rule)
+  // Example: file 'dir/that'\''s file.mp4'
+  return filePath.replace(/'/g, "'\\''");
+}
 
+function startFfmpegStream() {
   const playlist = getCurrentPlaylist();
-  if (!playlist.length) return res.status(400).json({ error: 'Playlist kosong' });
+  if (!playlist.length) return;
 
   const RTMP_URL = getRtmpUrl();
-
-  // Generate playlist.txt untuk concat
-  const concatContent = playlist.map(file => `file '${path.join(VIDEO_DIR, file).replace(/\\/g, "/")}'`).join("\n");
+  const concatContent = playlist
+    .map(file => `file '${escapeForFfmpegConcat(path.join(VIDEO_DIR, file).replace(/\\/g, "/"))}'`)
+    .join("\n");
   fs.writeFileSync(CONCAT_FILE, concatContent);
 
   const ffmpegArgs = [
-    '-re', '-f', 'concat', '-safe', '0', '-stream_loop', '-1',
+    '-re', '-f', 'concat', '-safe', '0',
     '-i', CONCAT_FILE,
     '-c:v', 'libx264', '-preset', 'veryfast', '-maxrate', '3000k', '-bufsize', '6000k',
     '-pix_fmt', 'yuv420p', '-g', '50', '-c:a', 'aac', '-b:a', '160k',
@@ -139,16 +146,31 @@ app.post('/api/stream/start', (req, res) => {
   ffmpegProcess.stderr.pipe(logStream);
 
   ffmpegProcess.on('exit', (code, signal) => {
-    ffmpegProcess = null;
     logStream.write(`\n[ffmpeg stopped] code: ${code}, signal: ${signal}\n`);
     logStream.end();
+    ffmpegProcess = null;
+    if (shouldLoopStream) {
+      setTimeout(() => startFfmpegStream(), 2000); // restart setelah 2 detik
+    }
   });
+}
+
+// API: Mulai streaming (loop playlist)
+app.post('/api/stream/start', (req, res) => {
+  if (ffmpegProcess) return res.status(400).json({ error: 'Streaming sudah berjalan' });
+
+  const playlist = getCurrentPlaylist();
+  if (!playlist.length) return res.status(400).json({ error: 'Playlist kosong' });
+
+  shouldLoopStream = true;
+  startFfmpegStream();
 
   res.json({ success: true });
 });
 
 // API: Stop streaming
 app.post('/api/stream/stop', (req, res) => {
+  shouldLoopStream = false;
   if (!ffmpegProcess) return res.status(400).json({ error: 'Tidak ada stream aktif' });
   ffmpegProcess.kill('SIGTERM');
   ffmpegProcess = null;
