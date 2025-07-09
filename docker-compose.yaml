@@ -7,8 +7,27 @@ services:
       - ./backend/videos:/app/videos
       # - ./backend/stream_log.txt:/app/stream_log.txt
     restart: unless-stopped
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASS=yourpassword
+      - DB_NAME=ngelive
+    depends_on:
+      - db
+
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
     restart: unless-stopped
+
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: yourpassword
+      MYSQL_DATABASE: ngelive
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mariadb_data:/var/lib/mysql

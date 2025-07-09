@@ -4,14 +4,39 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const mariadb = require('mariadb');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const VIDEO_DIR = path.join(__dirname, 'videos');
 const LOG_FILE = path.join(__dirname, 'stream_log.txt');
-const PLAYLIST_FILE = path.join(__dirname, 'playlist.json');
-const RTMP_FILE = path.join(__dirname, 'rtmp_url.txt');
 const CONCAT_FILE = path.join(__dirname, 'playlist.txt');
+
+// MariaDB pool config
+const dbPool = mariadb.createPool({
+  host: process.env.DB_HOST || 'db',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS || '',
+  database: process.env.DB_NAME || 'stegripe_stream',
+  connectionLimit: 5
+});
+
+// DB tables auto-init
+async function initDb() {
+  const conn = await dbPool.getConnection();
+  await conn.query(`CREATE TABLE IF NOT EXISTS settings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(64) UNIQUE NOT NULL,
+    value TEXT NOT NULL
+  )`);
+  await conn.query(`CREATE TABLE IF NOT EXISTS playlist (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    filename VARCHAR(255) NOT NULL,
+    position INT NOT NULL
+  )`);
+  conn.release();
+}
+initDb();
 
 // Pastikan folder video ada
 if (!fs.existsSync(VIDEO_DIR)) fs.mkdirSync(VIDEO_DIR);
@@ -55,56 +80,72 @@ app.get('/api/logs', (req, res) => {
   res.sendFile(LOG_FILE);
 });
 
-// Helper untuk baca/tulis playlist
-function getPlaylist() {
-  if (!fs.existsSync(PLAYLIST_FILE)) return [];
-  return JSON.parse(fs.readFileSync(PLAYLIST_FILE, "utf8"));
+// --- DB LOGIC ---
+
+// RTMP URL
+async function getRtmpUrl() {
+  const conn = await dbPool.getConnection();
+  const rows = await conn.query("SELECT value FROM settings WHERE name='rtmp_url'");
+  conn.release();
+  return rows[0]?.value || "";
 }
-function setPlaylist(arr) {
-  fs.writeFileSync(PLAYLIST_FILE, JSON.stringify(arr, null, 2));
+async function setRtmpUrl(url) {
+  const conn = await dbPool.getConnection();
+  await conn.query(
+    "INSERT INTO settings (name, value) VALUES ('rtmp_url', ?) ON DUPLICATE KEY UPDATE value=VALUES(value)",
+    [url.trim()]
+  );
+  conn.release();
 }
 
-// API get playlist
-app.get('/api/playlist', (req, res) => {
-  res.json(getPlaylist());
-});
-
-// API set playlist (urutan)
-app.post('/api/playlist', (req, res) => {
-  const { playlist } = req.body;
-  if (!Array.isArray(playlist)) return res.status(400).json({ error: "Invalid" });
-  setPlaylist(playlist);
-  res.json({ success: true });
-});
-
-// Helper untuk dapatkan playlist terbaru (fallback: semua video)
-function getCurrentPlaylist() {
-  if (fs.existsSync(PLAYLIST_FILE)) {
-    return JSON.parse(fs.readFileSync(PLAYLIST_FILE, "utf8"));
-  } else {
-    return fs.readdirSync(VIDEO_DIR).filter(f => f.endsWith('.mp4'));
+// Playlist
+async function getPlaylist() {
+  const conn = await dbPool.getConnection();
+  const rows = await conn.query("SELECT filename FROM playlist ORDER BY position ASC");
+  conn.release();
+  return rows.map(row => row.filename);
+}
+async function setPlaylist(arr) {
+  const conn = await dbPool.getConnection();
+  await conn.query("DELETE FROM playlist");
+  if (arr.length > 0) {
+    const values = arr.map((filename, i) => [filename, i]);
+    await conn.batch("INSERT INTO playlist (filename, position) VALUES (?, ?)", values);
   }
+  conn.release();
 }
 
-// Helper get/set RTMP URL
-function getRtmpUrl() {
-  if (!fs.existsSync(RTMP_FILE)) return "";
-  return fs.readFileSync(RTMP_FILE, "utf8").trim();
-}
-function setRtmpUrl(url) {
-  fs.writeFileSync(RTMP_FILE, url.trim());
+// Helper: fallback semua video jika playlist kosong
+async function getCurrentPlaylist() {
+  const pl = await getPlaylist();
+  if (pl.length) return pl;
+  // fallback: semua file video
+  return fs.readdirSync(VIDEO_DIR).filter(f => f.endsWith('.mp4'));
 }
 
 // API: Get RTMP URL
-app.get('/api/rtmp', (req, res) => {
-  res.json({ url: getRtmpUrl() });
+app.get('/api/rtmp', async (req, res) => {
+  res.json({ url: await getRtmpUrl() });
 });
 
 // API: Set RTMP URL
-app.post('/api/rtmp', (req, res) => {
+app.post('/api/rtmp', async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== "string") return res.status(400).json({ error: "URL tidak valid" });
-  setRtmpUrl(url);
+  await setRtmpUrl(url);
+  res.json({ success: true });
+});
+
+// API get playlist
+app.get('/api/playlist', async (req, res) => {
+  res.json(await getPlaylist());
+});
+
+// API set playlist (urutan)
+app.post('/api/playlist', async (req, res) => {
+  const { playlist } = req.body;
+  if (!Array.isArray(playlist)) return res.status(400).json({ error: "Invalid" });
+  await setPlaylist(playlist);
   res.json({ success: true });
 });
 
@@ -120,11 +161,11 @@ function escapeForFfmpegConcat(filePath) {
   return filePath.replace(/'/g, "'\\''");
 }
 
-function startFfmpegStream() {
-  const playlist = getCurrentPlaylist();
+async function startFfmpegStream() {
+  const playlist = await getCurrentPlaylist();
   if (!playlist.length) return;
 
-  const RTMP_URL = getRtmpUrl();
+  const RTMP_URL = await getRtmpUrl();
   const concatContent = playlist
     .map(file => `file '${escapeForFfmpegConcat(path.join(VIDEO_DIR, file).replace(/\\/g, "/"))}'`)
     .join("\n");
@@ -156,10 +197,10 @@ function startFfmpegStream() {
 }
 
 // API: Mulai streaming (loop playlist)
-app.post('/api/stream/start', (req, res) => {
+app.post('/api/stream/start', async (req, res) => {
   if (ffmpegProcess) return res.status(400).json({ error: 'Streaming sudah berjalan' });
 
-  const playlist = getCurrentPlaylist();
+  const playlist = await getCurrentPlaylist();
   if (!playlist.length) return res.status(400).json({ error: 'Playlist kosong' });
 
   shouldLoopStream = true;
