@@ -16,5 +16,3 @@ COPY . .
 EXPOSE 5000
 
 CMD ["pnpm", "start"]
-
-# force edit

@@ -20,7 +20,7 @@ jobs:
   push-frontend:
     name: Frontend
 
-    uses: ./.github/workflows/build.yml
+    uses: ./.github/workflows/build.yaml
     with:
       rootdir: frontend
       image-name: ngelive
@@ -29,7 +29,7 @@ jobs:
   push-backend:
     name: Backend
 
-    uses: ./.github/workflows/build.yml
+    uses: ./.github/workflows/build.yaml
     with:
       rootdir: backend
       image-name: ngelive-api
