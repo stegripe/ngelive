@@ -14,18 +14,13 @@ export default function Sidebar() {
             </Link>
           </li>
           <li>
-            <Link href="/playlist" className="block py-2 px-4 rounded hover:bg-gray-700">
-              Playlist
-            </Link>
-          </li>
-          <li>
             <Link href="/upload" className="block py-2 px-4 rounded hover:bg-gray-700">
               Upload
             </Link>
           </li>
           <li>
             <Link href="/settings" className="block py-2 px-4 rounded hover:bg-gray-700">
-              Settings
+              Settings & Streams
             </Link>
           </li>
           <li>

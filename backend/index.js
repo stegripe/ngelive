@@ -10,7 +10,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const VIDEO_DIR = path.join(__dirname, 'videos');
 const LOG_FILE = path.join(__dirname, 'stream_log.txt');
-const CONCAT_FILE = path.join(__dirname, 'playlist.txt');
 
 // MariaDB pool config
 const dbPool = mariadb.createPool({
@@ -21,19 +20,43 @@ const dbPool = mariadb.createPool({
   connectionLimit: 5
 });
 
+// Helper: convert BigInt to Number (for JSON serialization)
+function convertBigInt(obj) {
+  if (Array.isArray(obj)) return obj.map(convertBigInt);
+  if (obj && typeof obj === "object") {
+    for (let k in obj) {
+      if (typeof obj[k] === "bigint") obj[k] = Number(obj[k]);
+    }
+  }
+  return obj;
+}
+
 // DB tables auto-init
 async function initDb() {
   const conn = await dbPool.getConnection();
-  await conn.query(`CREATE TABLE IF NOT EXISTS settings (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(64) UNIQUE NOT NULL,
-    value TEXT NOT NULL
-  )`);
-  await conn.query(`CREATE TABLE IF NOT EXISTS playlist (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    filename VARCHAR(255) NOT NULL,
-    position INT NOT NULL
-  )`);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS streams (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(64) NOT NULL,
+      rtmp_url TEXT NOT NULL,
+      status VARCHAR(16) NOT NULL DEFAULT 'stopped'
+    )`);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS playlists (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      stream_id INT NOT NULL,
+      filename VARCHAR(255) NOT NULL,
+      position INT NOT NULL,
+      FOREIGN KEY (stream_id) REFERENCES streams(id) ON DELETE CASCADE
+    )`);
+  // NEW: Table to assign videos to specific streams
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS video_streams (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      filename VARCHAR(255) NOT NULL,
+      stream_id INT NOT NULL,
+      FOREIGN KEY (stream_id) REFERENCES streams(id) ON DELETE CASCADE
+    )`);
   conn.release();
 }
 initDb();
@@ -66,8 +89,13 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // Hapus video
-app.delete('/api/video/:filename', (req, res) => {
+app.delete('/api/video/:filename', async (req, res) => {
   const file = path.join(VIDEO_DIR, req.params.filename);
+  // Hapus di video_streams juga
+  const conn = await dbPool.getConnection();
+  await conn.query('DELETE FROM video_streams WHERE filename=?', [req.params.filename]);
+  await conn.query('DELETE FROM playlists WHERE filename=?', [req.params.filename]); // bersihin playlist
+  conn.release();
   fs.unlink(file, err => {
     if (err) return res.status(500).json({ error: 'Gagal hapus file' });
     res.json({ success: true });
@@ -80,147 +108,232 @@ app.get('/api/logs', (req, res) => {
   res.sendFile(LOG_FILE);
 });
 
-// --- DB LOGIC ---
+// --- DB LOGIC MULTI STREAM ---
 
-// RTMP URL
-async function getRtmpUrl() {
+// CRUD Streams
+app.get('/api/streams', async (req, res) => {
   const conn = await dbPool.getConnection();
-  const rows = await conn.query("SELECT value FROM settings WHERE name='rtmp_url'");
+  const rows = await conn.query('SELECT * FROM streams');
   conn.release();
-  return rows[0]?.value || "";
-}
-async function setRtmpUrl(url) {
+  res.json(convertBigInt(rows));
+});
+
+app.post('/api/streams', async (req, res) => {
+  const { name, rtmp_url } = req.body;
+  if (!name || !rtmp_url) return res.status(400).json({ error: 'Name dan RTMP URL harus diisi' });
   const conn = await dbPool.getConnection();
-  await conn.query(
-    "INSERT INTO settings (name, value) VALUES ('rtmp_url', ?) ON DUPLICATE KEY UPDATE value=VALUES(value)",
-    [url.trim()]
+  const result = await conn.query('INSERT INTO streams (name, rtmp_url) VALUES (?, ?)', [name, rtmp_url]);
+  conn.release();
+  res.json({ id: Number(result.insertId) });
+});
+
+// FIX: Only stop the ffmpeg process for the stream being deleted!
+app.delete('/api/streams/:stream_id', async (req, res) => {
+  const stream_id = req.params.stream_id;
+  // Stop only ffmpeg for this stream
+  if (ffmpegProcesses[stream_id]) {
+    try {
+      ffmpegProcesses[stream_id].kill('SIGTERM');
+    } catch (e) {}
+    ffmpegProcesses[stream_id] = null;
+    shouldLoopStream[stream_id] = false;
+  }
+  const conn = await dbPool.getConnection();
+  await conn.query('DELETE FROM streams WHERE id=?', [stream_id]);
+  conn.release();
+  res.json({ success: true });
+});
+
+app.put('/api/streams/:stream_id', async (req, res) => {
+  const { name, rtmp_url } = req.body;
+  const conn = await dbPool.getConnection();
+  await conn.query('UPDATE streams SET name=?, rtmp_url=? WHERE id=?', [name, rtmp_url, req.params.stream_id]);
+  conn.release();
+  res.json({ success: true });
+});
+
+// Playlist per stream
+app.get('/api/playlist/:stream_id', async (req, res) => {
+  const conn = await dbPool.getConnection();
+  // Only show playlist files that are allowed for this stream
+  const allowed = await conn.query('SELECT filename FROM video_streams WHERE stream_id=?', [req.params.stream_id]);
+  const allowedSet = new Set(allowed.map(r => r.filename));
+  const rows = await conn.query(
+    'SELECT filename FROM playlists WHERE stream_id=? ORDER BY position ASC',
+    [req.params.stream_id]
   );
   conn.release();
-}
-
-// Playlist
-async function getPlaylist() {
-  const conn = await dbPool.getConnection();
-  const rows = await conn.query("SELECT filename FROM playlist ORDER BY position ASC");
-  conn.release();
-  return rows.map(row => row.filename);
-}
-async function setPlaylist(arr) {
-  const conn = await dbPool.getConnection();
-  await conn.query("DELETE FROM playlist");
-  if (arr.length > 0) {
-    const values = arr.map((filename, i) => [filename, i]);
-    await conn.batch("INSERT INTO playlist (filename, position) VALUES (?, ?)", values);
-  }
-  conn.release();
-}
-
-// Helper: fallback semua video jika playlist kosong
-async function getCurrentPlaylist() {
-  const pl = await getPlaylist();
-  if (pl.length) return pl;
-  // fallback: semua file video
-  return fs.readdirSync(VIDEO_DIR).filter(f => f.endsWith('.mp4'));
-}
-
-// API: Get RTMP URL
-app.get('/api/rtmp', async (req, res) => {
-  res.json({ url: await getRtmpUrl() });
+  // Only return files that are allowed
+  const filtered = rows.filter(r => allowedSet.has(r.filename));
+  res.json(filtered.map(r => r.filename));
 });
 
-// API: Set RTMP URL
-app.post('/api/rtmp', async (req, res) => {
-  const { url } = req.body;
-  if (!url || typeof url !== "string") return res.status(400).json({ error: "URL tidak valid" });
-  await setRtmpUrl(url);
-  res.json({ success: true });
-});
-
-// API get playlist
-app.get('/api/playlist', async (req, res) => {
-  res.json(await getPlaylist());
-});
-
-// API set playlist (urutan)
-app.post('/api/playlist', async (req, res) => {
+app.post('/api/playlist/:stream_id', async (req, res) => {
   const { playlist } = req.body;
   if (!Array.isArray(playlist)) return res.status(400).json({ error: "Invalid" });
-  await setPlaylist(playlist);
+  const conn = await dbPool.getConnection();
+  await conn.query('DELETE FROM playlists WHERE stream_id=?', [req.params.stream_id]);
+  if (playlist.length > 0) {
+    // Only allow files in video_streams for this stream
+    const allowedRows = await conn.query('SELECT filename FROM video_streams WHERE stream_id=?', [req.params.stream_id]);
+    const allowedSet = new Set(allowedRows.map(r => r.filename));
+    const filteredPlaylist = playlist.filter(f => allowedSet.has(f));
+    if (filteredPlaylist.length > 0) {
+      const values = filteredPlaylist.map((filename, i) => [req.params.stream_id, filename, i]);
+      await conn.batch('INSERT INTO playlists (stream_id, filename, position) VALUES (?, ?, ?)', values);
+    }
+  }
+  conn.release();
   res.json({ success: true });
 });
 
-// Streaming logic
-let ffmpegProcess = null;
-let shouldLoopStream = false;
+// RTMP URL per stream (update)
+app.get('/api/streams/:stream_id/rtmp', async (req, res) => {
+  const conn = await dbPool.getConnection();
+  const rows = await conn.query('SELECT rtmp_url FROM streams WHERE id=?', [req.params.stream_id]);
+  conn.release();
+  res.json({ url: rows[0]?.rtmp_url || '' });
+});
+app.post('/api/streams/:stream_id/rtmp', async (req, res) => {
+  const { url } = req.body;
+  const conn = await dbPool.getConnection();
+  await conn.query('UPDATE streams SET rtmp_url=? WHERE id=?', [url, req.params.stream_id]);
+  conn.release();
+  res.json({ success: true });
+});
 
-// Escape for ffmpeg concat (Aman untuk semua simbol, hanya petik satu yang WAJIB di-escape, lainnya aman)
+// --- VIDEO <-> STREAM CHECKLIST API ---
+
+// Get all video <-> stream assignment
+app.get('/api/video_streams', async (req, res) => {
+  const conn = await dbPool.getConnection();
+  const rows = await conn.query('SELECT filename, stream_id FROM video_streams');
+  conn.release();
+  res.json(rows.map(r => ({
+    filename: r.filename,
+    stream_id: typeof r.stream_id === "bigint" ? Number(r.stream_id) : r.stream_id
+  })));
+});
+
+// Assign video to stream
+app.post('/api/video_streams', async (req, res) => {
+  const { filename, stream_id } = req.body;
+  if (!filename || !stream_id) return res.status(400).json({ error: "Missing filename or stream_id" });
+  const conn = await dbPool.getConnection();
+  await conn.query('INSERT IGNORE INTO video_streams (filename, stream_id) VALUES (?, ?)', [filename, stream_id]);
+  conn.release();
+  res.json({ success: true });
+});
+
+// Unassign video from stream
+app.delete('/api/video_streams', async (req, res) => {
+  const { filename, stream_id } = req.body;
+  if (!filename || !stream_id) return res.status(400).json({ error: "Missing filename or stream_id" });
+  const conn = await dbPool.getConnection();
+  await conn.query('DELETE FROM video_streams WHERE filename=? AND stream_id=?', [filename, stream_id]);
+  conn.release();
+  res.json({ success: true });
+});
+
+// Helper: fallback only video assigned to stream if playlist kosong
+async function getCurrentPlaylist(stream_id) {
+  const conn = await dbPool.getConnection();
+  const rows = await conn.query(
+    'SELECT filename FROM playlists WHERE stream_id=? ORDER BY position ASC',
+    [stream_id]
+  );
+  // Only allow files in video_streams
+  const allowed = await conn.query('SELECT filename FROM video_streams WHERE stream_id=?', [stream_id]);
+  conn.release();
+  const allowedSet = new Set(allowed.map(r => r.filename));
+  const filtered = rows.filter(r => allowedSet.has(r.filename));
+  if (filtered.length) return filtered.map(r => r.filename);
+  // fallback: semua video yang di-assign ke stream ini
+  return Array.from(allowedSet);
+}
+async function getRtmpUrlByStream(stream_id) {
+  const conn = await dbPool.getConnection();
+  const rows = await conn.query('SELECT rtmp_url FROM streams WHERE id=?', [stream_id]);
+  conn.release();
+  return rows[0]?.rtmp_url || '';
+}
+
+// Streaming logic MULTI
+const ffmpegProcesses = {}; // key: stream_id, value: process
+const shouldLoopStream = {}; // key: stream_id, value: bool
+
 function escapeForFfmpegConcat(filePath) {
-  // Escape single quotes for ffmpeg concat only
-  // Path must be inside single quotes, single quote in path must be: '\'' (ffmpeg rule)
-  // Example: file 'dir/that'\''s file.mp4'
   return filePath.replace(/'/g, "'\\''");
 }
 
-async function startFfmpegStream() {
-  const playlist = await getCurrentPlaylist();
+async function startFfmpegStream(stream_id) {
+  const playlist = await getCurrentPlaylist(stream_id);
   if (!playlist.length) return;
-
-  const RTMP_URL = await getRtmpUrl();
+  const RTMP_URL = await getRtmpUrlByStream(stream_id);
+  const concatFile = path.join(__dirname, `playlist_${stream_id}.txt`);
   const concatContent = playlist
     .map(file => `file '${escapeForFfmpegConcat(path.join(VIDEO_DIR, file).replace(/\\/g, "/"))}'`)
     .join("\n");
-  fs.writeFileSync(CONCAT_FILE, concatContent);
+  fs.writeFileSync(concatFile, concatContent);
 
   const ffmpegArgs = [
     '-re', '-f', 'concat', '-safe', '0',
-    '-i', CONCAT_FILE,
+    '-i', concatFile,
     '-c:v', 'libx264', '-preset', 'veryfast', '-maxrate', '3000k', '-bufsize', '6000k',
     '-pix_fmt', 'yuv420p', '-g', '50', '-c:a', 'aac', '-b:a', '160k',
     '-ar', '44100', '-f', 'flv', RTMP_URL
   ];
 
-  ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+  const proc = spawn('ffmpeg', ffmpegArgs);
+  ffmpegProcesses[stream_id] = proc;
 
-  // Log output ke file
   const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
-  ffmpegProcess.stdout.pipe(logStream);
-  ffmpegProcess.stderr.pipe(logStream);
+  proc.stdout.pipe(logStream);
+  proc.stderr.pipe(logStream);
 
-  ffmpegProcess.on('exit', (code, signal) => {
-    logStream.write(`\n[ffmpeg stopped] code: ${code}, signal: ${signal}\n`);
+  proc.on('exit', (code, signal) => {
+    logStream.write(`\n[ffmpeg ${stream_id} stopped] code: ${code}, signal: ${signal}\n`);
     logStream.end();
-    ffmpegProcess = null;
-    if (shouldLoopStream) {
-      setTimeout(() => startFfmpegStream(), 2000); // restart setelah 2 detik
+    ffmpegProcesses[stream_id] = null;
+    if (shouldLoopStream[stream_id]) {
+      setTimeout(() => startFfmpegStream(stream_id), 2000);
     }
   });
 }
 
-// API: Mulai streaming (loop playlist)
-app.post('/api/stream/start', async (req, res) => {
-  if (ffmpegProcess) return res.status(400).json({ error: 'Streaming sudah berjalan' });
-
-  const playlist = await getCurrentPlaylist();
+// API: Mulai streaming (loop playlist) per stream
+app.post('/api/stream/:stream_id/start', async (req, res) => {
+  const stream_id = req.params.stream_id;
+  if (ffmpegProcesses[stream_id]) return res.status(400).json({ error: 'Streaming sudah berjalan' });
+  const playlist = await getCurrentPlaylist(stream_id);
   if (!playlist.length) return res.status(400).json({ error: 'Playlist kosong' });
-
-  shouldLoopStream = true;
-  startFfmpegStream();
-
+  shouldLoopStream[stream_id] = true;
+  startFfmpegStream(stream_id);
+  // Update status in DB
+  const conn = await dbPool.getConnection();
+  await conn.query('UPDATE streams SET status=? WHERE id=?', ['running', stream_id]);
+  conn.release();
   res.json({ success: true });
 });
 
-// API: Stop streaming
-app.post('/api/stream/stop', (req, res) => {
-  shouldLoopStream = false;
-  if (!ffmpegProcess) return res.status(400).json({ error: 'Tidak ada stream aktif' });
-  ffmpegProcess.kill('SIGTERM');
-  ffmpegProcess = null;
+// API: Stop streaming per stream
+app.post('/api/stream/:stream_id/stop', async (req, res) => {
+  const stream_id = req.params.stream_id;
+  shouldLoopStream[stream_id] = false;
+  if (!ffmpegProcesses[stream_id]) return res.status(400).json({ error: 'Tidak ada stream aktif' });
+  ffmpegProcesses[stream_id].kill('SIGTERM');
+  ffmpegProcesses[stream_id] = null;
+  // Update status in DB
+  const conn = await dbPool.getConnection();
+  await conn.query('UPDATE streams SET status=? WHERE id=?', ['stopped', stream_id]);
+  conn.release();
   res.json({ success: true });
 });
 
-// API: Status streaming
-app.get('/api/stream/status', (req, res) => {
-  res.json({ running: !!ffmpegProcess });
+// API: Status streaming per stream
+app.get('/api/stream/:stream_id/status', (req, res) => {
+  const stream_id = req.params.stream_id;
+  res.json({ running: !!ffmpegProcesses[stream_id] });
 });
 
 app.listen(PORT, () => {
