@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined); // Ubah default ke undefined (loading state)
 
   // Check token in localStorage
   useEffect(() => {
@@ -15,6 +15,8 @@ export function AuthProvider({ children }) {
         .then((r) => r.json())
         .then((d) => setUser(d.user))
         .catch(() => setUser(null));
+    } else {
+      setUser(null); // <-- penting: pastikan setUser(null) kalau token tidak ada!
     }
   }, []);
 

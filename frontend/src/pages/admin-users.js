@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/router";
+import Layout from "../components/Layout";
 
-export default function AdminUsers() {
+function AdminUsers() {
   const { user } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState([]);
@@ -117,3 +118,10 @@ export default function AdminUsers() {
     </div>
   );
 }
+
+// Pakai layout dashboard/sidebar
+AdminUsers.getLayout = function getLayout(page) {
+  return <Layout>{page}</Layout>;
+};
+
+export default AdminUsers;

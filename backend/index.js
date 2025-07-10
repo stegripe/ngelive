@@ -70,15 +70,20 @@ async function initDb() {
       role VARCHAR(16) NOT NULL DEFAULT 'user',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
-  // Create default admin if not exists
+  // Create default admin if not exists (safe from duplicate error)
   const bcrypt = require('bcryptjs');
-  const users = await conn.query('SELECT * FROM users WHERE role="admin"');
-  if (users.length === 0) {
+  const admins = await conn.query('SELECT * FROM users WHERE username=?', ["admin"]);
+  if (admins.length === 0) {
     const hash = bcrypt.hashSync("admin123", 10);
-    await conn.query(
-      'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-      ["admin", hash, "admin"]
-    );
+    try {
+      await conn.query(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        ["admin", hash, "admin"]
+      );
+    } catch (e) {
+      // Ignore duplicate entry error (race condition)
+      if (e.code !== 'ER_DUP_ENTRY') throw e;
+    }
   }
   conn.release();
 }
