@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 
-const SECRET = process.env.JWT_SECRET || "stegripe_super_secret";
+const SECRET = process.env.JWT_SECRET || "ngelive_super_secret";
 
 // --- Require MariaDB pool from main app
 const { dbPool } = require('./index'); // asumsi pool di-export, atau copy pool config di sini

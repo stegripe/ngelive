@@ -17,7 +17,7 @@ const dbPool = mariadb.createPool({
   host: process.env.DB_HOST || 'db',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'stegripe_stream',
+  database: process.env.DB_NAME || 'ngelive',
   connectionLimit: 5
 });
 
