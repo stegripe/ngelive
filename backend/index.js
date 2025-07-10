@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const mariadb = require('mariadb');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,9 @@ const dbPool = mariadb.createPool({
   database: process.env.DB_NAME || 'stegripe_stream',
   connectionLimit: 5
 });
+
+// Export pool if needed by users-auth.js
+module.exports.dbPool = dbPool;
 
 // Helper: convert BigInt to Number (for JSON serialization)
 function convertBigInt(obj) {
@@ -57,6 +61,25 @@ async function initDb() {
       stream_id INT NOT NULL,
       FOREIGN KEY (stream_id) REFERENCES streams(id) ON DELETE CASCADE
     )`);
+  // --- USERS TABLE for Auth ---
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      username VARCHAR(32) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role VARCHAR(16) NOT NULL DEFAULT 'user',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+  // Create default admin if not exists
+  const bcrypt = require('bcryptjs');
+  const users = await conn.query('SELECT * FROM users WHERE role="admin"');
+  if (users.length === 0) {
+    const hash = bcrypt.hashSync("admin123", 10);
+    await conn.query(
+      'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+      ["admin", hash, "admin"]
+    );
+  }
   conn.release();
 }
 initDb();
@@ -64,8 +87,13 @@ initDb();
 // Pastikan folder video ada
 if (!fs.existsSync(VIDEO_DIR)) fs.mkdirSync(VIDEO_DIR);
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
+
+// --- USERS/AUTH ROUTES ---
+const usersAuth = require('./users-auth');
+app.use('/api', usersAuth);
 
 // Daftar video
 app.get('/api/videos', (req, res) => {
@@ -128,6 +156,9 @@ app.post('/api/streams', async (req, res) => {
 });
 
 // FIX: Only stop the ffmpeg process for the stream being deleted!
+const ffmpegProcesses = {}; // key: stream_id, value: process
+const shouldLoopStream = {}; // key: stream_id, value: bool
+
 app.delete('/api/streams/:stream_id', async (req, res) => {
   const stream_id = req.params.stream_id;
   // Stop only ffmpeg for this stream
@@ -259,9 +290,6 @@ async function getRtmpUrlByStream(stream_id) {
 }
 
 // Streaming logic MULTI
-const ffmpegProcesses = {}; // key: stream_id, value: process
-const shouldLoopStream = {}; // key: stream_id, value: bool
-
 function escapeForFfmpegConcat(filePath) {
   return filePath.replace(/'/g, "'\\''");
 }
