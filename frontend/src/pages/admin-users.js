@@ -10,8 +10,9 @@ function AdminUsers() {
   const [msg, setMsg] = useState("");
   const [newUser, setNewUser] = useState({ username: "", password: "", role: "user" });
 
-  // --- NEW: For edit state
+  // --- For edit state
   const [editId, setEditId] = useState(null);
+  const [editUsername, setEditUsername] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editPassword, setEditPassword] = useState("");
 
@@ -67,9 +68,10 @@ function AdminUsers() {
     fetchUsers();
   };
 
-  // --- NEW: Edit Role & Password
+  // --- Edit User (username+role+password)
   const handleEditClick = (u) => {
     setEditId(u.id);
+    setEditUsername(u.username);
     setEditRole(u.role);
     setEditPassword("");
     setMsg("");
@@ -77,12 +79,13 @@ function AdminUsers() {
 
   const handleEditSave = async (id) => {
     setMsg("");
-    if (!editRole && !editPassword) {
+    if (!editUsername && !editRole && !editPassword) {
       setMsg("Setidaknya isi satu perubahan.");
       return;
     }
     const token = localStorage.getItem("token");
     const update = {};
+    if (editUsername) update.username = editUsername;
     if (editRole) update.role = editRole;
     if (editPassword) update.password = editPassword;
     const res = await fetch("/api/users/" + id, {
@@ -95,6 +98,7 @@ function AdminUsers() {
     });
     if (res.ok) {
       setEditId(null);
+      setEditUsername("");
       setEditPassword("");
       setEditRole("");
       fetchUsers();
@@ -106,6 +110,7 @@ function AdminUsers() {
 
   const handleEditCancel = () => {
     setEditId(null);
+    setEditUsername("");
     setEditPassword("");
     setEditRole("");
     setMsg("");
@@ -153,7 +158,18 @@ function AdminUsers() {
           {users.map(u => (
             <tr key={u.id}>
               <td className="border p-2">{u.id}</td>
-              <td className="border p-2">{u.username}</td>
+              <td className="border p-2">
+                {editId === u.id ? (
+                  <input
+                    className="border p-1 rounded mr-2"
+                    value={editUsername}
+                    onChange={e => setEditUsername(e.target.value)}
+                    style={{ width: 120 }}
+                  />
+                ) : (
+                  u.username
+                )}
+              </td>
               <td className="border p-2">
                 {editId === u.id ? (
                   <select className="border p-1 rounded"
@@ -177,7 +193,7 @@ function AdminUsers() {
                       className="border p-1 rounded mr-2"
                       value={editPassword}
                       onChange={e => setEditPassword(e.target.value)}
-                      style={{width: 120}}
+                      style={{ width: 120 }}
                     />
                     <button className="bg-blue-600 text-white px-2 py-1 rounded mr-1"
                       onClick={() => handleEditSave(u.id)}>Simpan</button>

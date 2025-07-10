@@ -1,3 +1,5 @@
+// PATCH: update username support on PUT /users/:id
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -6,7 +8,7 @@ const router = express.Router();
 const SECRET = process.env.JWT_SECRET || "ngelive_super_secret";
 
 // --- Require MariaDB pool from main app
-const { dbPool } = require('./index'); // asumsi pool di-export, atau copy pool config di sini
+const { dbPool } = require('./index');
 
 // --- Middleware: auth (JWT)
 function requireAuth(req, res, next) {
@@ -92,12 +94,16 @@ router.post('/users', requireAuth, requireAdmin, async (req, res) => {
   conn.release();
 });
 
-// --- Update user (admin only)
+// --- Update user (admin only) -- PATCH: support username change
 router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { password, role } = req.body;
+  const { username, password, role } = req.body;
   const conn = await dbPool.getConnection();
   let q = 'UPDATE users SET ';
   const vals = [];
+  if (username) {
+    q += 'username=?, ';
+    vals.push(username);
+  }
   if (password) {
     q += 'password_hash=?, ';
     vals.push(bcrypt.hashSync(password, 10));
@@ -108,9 +114,17 @@ router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   }
   q = q.replace(/, $/, '') + ' WHERE id=?';
   vals.push(req.params.id);
-  await conn.query(q, vals);
+  try {
+    await conn.query(q, vals);
+    res.json({ success: true });
+  } catch (e) {
+    if (e.code === 'ER_DUP_ENTRY') {
+      res.status(400).json({ error: 'Username already exists' });
+    } else {
+      res.status(500).json({ error: 'DB error' });
+    }
+  }
   conn.release();
-  res.json({ success: true });
 });
 
 // --- Delete user (admin only)
