@@ -161,4 +161,4 @@ This project is developed by **Stegripe Development**.
 
 ## Support
 
-For issues and questions, please contact us.
+For issues and questions, please contact our main place.
