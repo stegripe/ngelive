@@ -7,7 +7,7 @@
         "dev": "concurrently \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
         "dev:backend": "tsx watch backend/src/index.ts",
         "dev:frontend": "cd frontend && pnpm run dev",
-        "lint": "pnpm exec biome check backend frontend && cd frontend && pnpm run lint",
+        "lint": "pnpm exec biome check backend frontend",
         "lint:fix": "pnpm exec biome check --fix --unsafe backend frontend",
         "build": "concurrently \"pnpm run build:backend\" \"pnpm run build:frontend\"",
         "build:backend": "pnpm exec biome check backend && tsc --build tsconfig.json",
