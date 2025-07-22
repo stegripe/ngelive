@@ -1,4 +1,4 @@
-name: Build and Push Frontend & Backend to OCI Image Registry
+name: Build and Push Docker Image to the container image registry
 
 on:
   release:
@@ -6,31 +6,13 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "frontend/Dockerfile"
-      - "backend/Dockerfile"
   pull_request:
     branches:
       - main
     paths:
-      - "frontend/Dockerfile"
-      - "backend/Dockerfile"
+      - "Dockerfile"
 
 jobs:
-  push-frontend:
-    name: Frontend
-
-    uses: ./.github/workflows/build.yaml
-    with:
-      rootdir: frontend
-      image-name: ngelive
-    secrets: inherit
-
-  push-backend:
-    name: Backend
-
-    uses: ./.github/workflows/build.yaml
-    with:
-      rootdir: backend
-      image-name: ngelive-api
+  docker:
+    uses: stegripe/workflows/.github/workflows/docker-build-and-push.yaml@main
     secrets: inherit

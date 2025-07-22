@@ -1,33 +1,48 @@
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "5000:5000"
+  mariadb:
+    image: mariadb:11.2
+    container_name: ngelive_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./backend/videos:/app/videos
-      # - ./backend/stream_log.txt:/app/stream_log.txt
-    restart: unless-stopped
-    environment:
-      - DB_HOST=db
-      - DB_USER=root
-      - DB_PASS=yourpassword
-      - DB_NAME=ngelive
-    depends_on:
-      - db
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-
-  db:
-    image: mariadb
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: yourpassword
-      MYSQL_DATABASE: ngelive
+      - mariadb_data:/var/lib/mysql
     ports:
       - "3306:3306"
+    networks:
+      - ngelive_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ngelive_app
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mariadb:3306/${MYSQL_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      UPLOAD_PATH: /app/uploads
+      PORT: ${PORT}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
+    ports:
+      - "${PORT}:${PORT}"
     volumes:
-      - ./mariadb_data:/var/lib/mysql
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - ngelive_network
+
+volumes:
+  mariadb_data:
+
+networks:
+  ngelive_network:
+    driver: bridge

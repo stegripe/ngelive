@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "Node16",
+        "moduleResolution": "Node16",
+        "lib": [
+            "ESNext"
+        ],
+        "strict": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true,
+        "noEmitHelpers": true,
+        "importHelpers": true,
+        "outDir": "backend/dist",
+        "baseUrl": "backend/src",
+        "typeRoots": [
+            "node_modules/@types"
+        ]
+    },
+    "include": [
+        "backend/src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/**",
+        "frontend/**/*"
+    ]
+}

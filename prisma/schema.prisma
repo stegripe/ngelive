@@ -1,0 +1,102 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id          String   @id @default(cuid())
+    email       String   @unique
+    username    String   @unique
+    password    String
+    role        Role     @default(USER)
+    rtmpQuota   Int      @default(1) @map("rtmp_quota")
+    isActive    Boolean  @default(true) @map("is_active")
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    rtmpStreams RtmpStream[]
+    videos      Video[]
+
+    @@map("users")
+}
+
+model RtmpStream {
+    id          String      @id @default(cuid())
+    name        String
+    streamKey   String      @unique @map("stream_key")
+    rtmpUrl     String      @map("rtmp_url")
+    isActive    Boolean     @default(false) @map("is_active")
+    isStreaming Boolean     @default(false) @map("is_streaming")
+    currentVideo String?    @map("current_video")
+    playlistMode PlaylistMode @default(LOOP) @map("playlist_mode")
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
+
+    userId      String @map("user_id")
+    user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    streamVideos StreamVideo[]
+    streamLogs   StreamLog[]
+
+    @@map("rtmp_streams")
+}
+
+model Video {
+    id          String   @id @default(cuid())
+    filename    String
+    originalName String  @map("original_name")
+    path        String
+    size        BigInt
+    duration    Int?
+    resolution  String?
+    format      String?
+    uploadedAt  DateTime @default(now()) @map("uploaded_at")
+
+    userId      String @map("user_id")
+    user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    streamVideos StreamVideo[]
+
+    @@map("videos")
+}
+
+model StreamVideo {
+    id       String @id @default(cuid())
+    order    Int
+    
+    streamId String @map("stream_id")
+    stream   RtmpStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+    
+    videoId  String @map("video_id")
+    video    Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+    @@unique([streamId, videoId])
+    @@map("stream_videos")
+}
+
+model StreamLog {
+    id        String    @id @default(cuid())
+    action    String
+    message   String?
+    timestamp DateTime  @default(now())
+
+    streamId  String @map("stream_id")
+    stream    RtmpStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+    @@map("stream_logs")
+}
+
+enum Role {
+    ADMIN
+    USER
+}
+
+enum PlaylistMode {
+    LOOP
+    ONCE
+    SHUFFLE
+}

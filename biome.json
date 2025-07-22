@@ -1,0 +1,65 @@
+{
+    "$schema": "https://biomejs.dev/schemas/1.4.1/schema.json",
+    "organizeImports": {
+        "enabled": true
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "complexity": {
+                "noExcessiveCognitiveComplexity": "error",
+                "noUselessLoneBlockStatements": "error"
+            },
+            "correctness": {
+                "noUnusedVariables": "error",
+                "useExhaustiveDependencies": "warn"
+            },
+            "performance": {
+                "noDelete": "error"
+            },
+            "style": {
+                "noNegationElse": "error",
+                "useConst": "error",
+                "useShorthandArrayType": "error"
+            },
+            "suspicious": {
+                "noDebugger": "error",
+                "noConsoleLog": "warn"
+            }
+        }
+    },
+    "formatter": {
+        "enabled": true,
+        "formatWithErrors": false,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 100,
+        "lineEnding": "lf"
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double",
+            "semicolons": "always",
+            "trailingCommas": "es5"
+        }
+    },
+    "json": {
+        "formatter": {
+            "indentWidth": 4
+        }
+    },
+    "files": {
+        "include": [
+            "backend/src/**/*",
+            "frontend/src/**/*",
+            "prisma/**/*"
+        ],
+        "ignore": [
+            "node_modules/**/*",
+            "dist/**/*",
+            ".next/**/*",
+            "build/**/*"
+        ]
+    }
+}
