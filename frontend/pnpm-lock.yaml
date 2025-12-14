@@ -12,8 +12,8 @@ importers:
         specifier: ^5.83.0
         version: 5.83.0(react@18.3.1)
       '@types/node':
-        specifier: ^20.10.5
-        version: 20.19.7
+        specifier: ^22.19.3
+        version: 22.19.3
       '@types/react':
         specifier: ^18.2.45
         version: 18.3.23
@@ -167,8 +167,8 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@types/node@20.19.7':
-    resolution: {integrity: sha512-1GM9z6BJOv86qkPvzh2i6VW5+VVrXxCLknfmTkWEqz+6DqosiY28XUWCTmBcJ0ACzKqx/iwdIREfo1fwExIlkA==}
+  '@types/node@22.19.3':
+    resolution: {integrity: sha512-1N9SBnWYOJTrNZCdh/yJE+t910Y128BoyY+zBLWhL3r0TYzlTmFdXrPwHL9DyFZmlEXNQQolTZh3KHV31QDhyA==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -511,6 +511,7 @@ packages:
   next@14.2.30:
     resolution: {integrity: sha512-+COdu6HQrHHFQ1S/8BBsCag61jZacmvbuL2avHvQFbWa2Ox7bE+d8FyNgxRLjXQ5wtPyQwEmk85js/AuaG2Sbg==}
     engines: {node: '>=18.17.0'}
+    deprecated: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
@@ -865,7 +866,7 @@ snapshots:
       '@tanstack/query-core': 5.83.0
       react: 18.3.1
 
-  '@types/node@20.19.7':
+  '@types/node@22.19.3':
     dependencies:
       undici-types: 6.21.0
 
