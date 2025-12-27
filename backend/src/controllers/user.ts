@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
-import { Request, type Response } from "express";
+import { type Response } from "express";
 import prisma from "../config/database";
-import type { AuthRequest } from "../middleware/auth";
+import { type AuthRequest } from "../middleware/auth";
 import { sendError, sendSuccess } from "../utils/response";
 import { validateEmail, validateRequired } from "../utils/validation";
 

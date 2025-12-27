@@ -1,5 +1,7 @@
 "use client";
 
+import { Plus, Search, Video } from "lucide-react";
+import { useState } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { CreateRtmpModal } from "@/components/rtmp/create-rtmp";
 import { RtmpCard } from "@/components/rtmp/rtmp-card";
@@ -7,9 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useStreams } from "@/hooks/useStreams";
-import type { RtmpStream } from "@/types";
-import { Plus, Search, Video } from "lucide-react";
-import { useState } from "react";
+import { type RtmpStream } from "@/types";
 
 // Use RtmpStream instead of defining a local Stream interface
 type Stream = RtmpStream;

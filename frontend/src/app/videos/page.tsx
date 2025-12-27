@@ -1,5 +1,7 @@
 "use client";
 
+import { Calendar, HardDrive, Play, Plus, Search, Shield, Trash2, User } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,9 +11,7 @@ import { VideoPlayer } from "@/components/video/video-player";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
-import type { Video } from "@/types";
-import { Calendar, HardDrive, Play, Plus, Search, Shield, Trash2, User } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { type Video } from "@/types";
 
 export default function VideosPage() {
     const { user } = useAuth();

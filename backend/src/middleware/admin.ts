@@ -1,6 +1,6 @@
-import type { NextFunction, Response } from "express";
+import { type NextFunction, type Response } from "express";
 import { sendError } from "../utils/response";
-import type { AuthRequest } from "./auth";
+import { type AuthRequest } from "./auth";
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
     if (req.user?.role !== "ADMIN") {

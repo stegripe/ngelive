@@ -1,13 +1,13 @@
 "use client";
 
+import { Edit, Plus, Shield, Trash2, User } from "lucide-react";
+import { useState } from "react";
 import { AddUserModal } from "@/components/admin/add-user-modal";
 import { EditUserModal } from "@/components/admin/edit-user-modal";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useDeleteUser, useUsers } from "@/hooks/useUsers";
-import { Edit, Plus, Shield, Trash2, User } from "lucide-react";
-import { useState } from "react";
 
 type UserType = {
     id: string;

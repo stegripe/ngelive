@@ -1,8 +1,8 @@
 "use client";
 
-import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useAuth } from "@/lib/auth";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 

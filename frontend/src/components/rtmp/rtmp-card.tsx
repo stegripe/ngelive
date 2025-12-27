@@ -1,11 +1,11 @@
 "use client";
 
+import { Play, Settings, Square, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import type { RtmpStream } from "@/types";
-import { Play, Settings, Square, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { type RtmpStream } from "@/types";
 import { RtmpSettings } from "./rtmp-settings";
 
 interface RtmpCardProps {

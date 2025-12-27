@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import { type Response } from "express";
 
 // Helper function to serialize BigInt
 const serializeBigInt = (obj: unknown): unknown => {

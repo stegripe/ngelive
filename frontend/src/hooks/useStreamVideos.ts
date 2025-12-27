@@ -1,6 +1,6 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toastManager } from "@/lib/toast-manager";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const useAddVideoToStream = () => {
     const queryClient = useQueryClient();
@@ -117,7 +117,10 @@ export const useReorderStreamVideos = () => {
         mutationFn: async ({
             streamId,
             videoOrders,
-        }: { streamId: string; videoOrders: { videoId: string; order: number }[] }) => {
+        }: {
+            streamId: string;
+            videoOrders: { videoId: string; order: number }[];
+        }) => {
             const response = await api.put(`/rtmp/${streamId}/videos/reorder`, { videoOrders });
             return response.data;
         },

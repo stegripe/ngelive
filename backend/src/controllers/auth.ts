@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
-import type { Request, Response } from "express";
+import { type Request, type Response } from "express";
 import prisma from "../config/database";
 import { generateToken } from "../config/jwt";
-import type { AuthRequest } from "../middleware/auth";
+import { type AuthRequest } from "../middleware/auth";
 import { sendError, sendSuccess } from "../utils/response";
 import { validateEmail, validateRequired } from "../utils/validation";
 

@@ -1,10 +1,10 @@
 "use client";
 
+import { Key, Mail, RefreshCw, Shield, ToggleLeft, ToggleRight, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUpdateUser } from "@/hooks/useUsers";
-import { Key, Mail, RefreshCw, Shield, ToggleLeft, ToggleRight, User, X } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface EditUserModalProps {
     isOpen: boolean;
@@ -88,14 +88,15 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+        let newValue: string | number | boolean = value;
+        if (type === "checkbox") {
+            newValue = (e.target as HTMLInputElement).checked;
+        } else if (name === "rtmpQuota") {
+            newValue = Number.parseInt(value, 10);
+        }
         setFormData((prev) => ({
             ...prev,
-            [name]:
-                type === "checkbox"
-                    ? (e.target as HTMLInputElement).checked
-                    : name === "rtmpQuota"
-                      ? Number.parseInt(value)
-                      : value,
+            [name]: newValue,
         }));
     };
 

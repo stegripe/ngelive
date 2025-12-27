@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
-import type { Request, Response } from "express";
-import type { AuthRequest } from "../middleware/auth";
+import { type Request, type Response } from "express";
+import { type AuthRequest } from "../middleware/auth";
 import { sendError, sendSuccess } from "../utils/response";
 
 const prisma = new PrismaClient();

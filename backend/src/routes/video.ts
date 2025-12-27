@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import express, { type Request, type Response, type NextFunction } from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import multer, { type MulterError } from "multer";
 import { deleteVideo, getVideo, getVideos, streamVideo, uploadVideo } from "../controllers/video";
 import { authenticateToken } from "../middleware/auth";
@@ -14,7 +14,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Get file size limit from env (default 2GB)
-const MAX_FILE_SIZE = Number.parseInt(process.env.MAX_FILE_SIZE || "2147483648");
+const MAX_FILE_SIZE = Number.parseInt(process.env.MAX_FILE_SIZE || "2147483648", 10);
 
 // Configure multer
 const upload = multer({
@@ -45,13 +45,11 @@ const handleUploadError = (
     res: Response,
     _next: NextFunction
 ) => {
-    if (err instanceof multer.MulterError) {
-        if (err.code === "LIMIT_FILE_SIZE") {
-            return res.status(400).json({
-                success: false,
-                message: `File too large. Maximum size is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB.`,
-            });
-        }
+    if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+            success: false,
+            message: `File too large. Maximum size is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB.`,
+        });
     }
 
     if (err.message === "Invalid file type. Only video files are allowed.") {

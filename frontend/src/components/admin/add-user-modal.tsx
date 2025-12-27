@@ -1,10 +1,10 @@
 "use client";
 
+import { Key, Mail, Shield, User, X } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCreateUser } from "@/hooks/useUsers";
-import { Key, Mail, Shield, User, X } from "lucide-react";
-import { useState } from "react";
 
 interface AddUserModalProps {
     isOpen: boolean;
@@ -45,7 +45,7 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: name === "rtmpQuota" ? Number.parseInt(value) : value,
+            [name]: name === "rtmpQuota" ? Number.parseInt(value, 10) : value,
         }));
     };
 

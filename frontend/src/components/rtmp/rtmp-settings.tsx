@@ -1,16 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-    useAddVideoToStream,
-    useRemoveVideoFromStream,
-    useReorderStreamVideos,
-} from "@/hooks/useStreamVideos";
-import { useUpdateStream } from "@/hooks/useStreams";
-import { useVideos } from "@/hooks/useVideos";
-import { toastManager } from "@/lib/toast-manager";
 import {
     ArrowDown,
     ArrowUp,
@@ -25,6 +14,17 @@ import {
     X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useUpdateStream } from "@/hooks/useStreams";
+import {
+    useAddVideoToStream,
+    useRemoveVideoFromStream,
+    useReorderStreamVideos,
+} from "@/hooks/useStreamVideos";
+import { useVideos } from "@/hooks/useVideos";
+import { toastManager } from "@/lib/toast-manager";
 
 interface RtmpSettingsProps {
     isOpen: boolean;

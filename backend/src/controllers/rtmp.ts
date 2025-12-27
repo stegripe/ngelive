@@ -1,6 +1,7 @@
-import type { Response } from "express";
+import fs from "node:fs";
+import { type Response } from "express";
 import prisma from "../config/database";
-import type { AuthRequest } from "../middleware/auth";
+import { type AuthRequest } from "../middleware/auth";
 import { startFFmpegStream, stopFFmpegStream } from "../services/ffmpeg";
 import { generateStreamKey } from "../services/rtmp";
 import { sendError, sendSuccess } from "../utils/response";
@@ -234,9 +235,15 @@ export const updateRtmpStream = async (req: AuthRequest, res: Response) => {
             playlistMode?: "LOOP" | "ONCE" | "SHUFFLE";
         } = {};
 
-        if (name) updateData.name = name;
-        if (rtmpUrl) updateData.rtmpUrl = rtmpUrl;
-        if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+        if (name) {
+            updateData.name = name;
+        }
+        if (rtmpUrl) {
+            updateData.rtmpUrl = rtmpUrl;
+        }
+        if (isActive !== undefined) {
+            updateData.isActive = Boolean(isActive);
+        }
         if (playlistMode && ["LOOP", "ONCE", "SHUFFLE"].includes(playlistMode)) {
             updateData.playlistMode = playlistMode as "LOOP" | "ONCE" | "SHUFFLE";
         }
@@ -344,7 +351,6 @@ export const startStream = async (req: AuthRequest, res: Response) => {
             return sendError(res, "No videos assigned to this stream", 400);
         }
 
-        const fs = require("node:fs");
         for (const sv of stream.streamVideos) {
             if (!sv.video.path || !fs.existsSync(sv.video.path)) {
                 return sendError(res, `Video file not found: ${sv.video.path}`, 400);

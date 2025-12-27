@@ -1,5 +1,5 @@
 import cors from "cors";
-import express, { type Request, type Response, type NextFunction } from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/auth";

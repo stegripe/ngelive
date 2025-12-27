@@ -1,12 +1,12 @@
 "use client";
 
+import { Download, Trash2, Video as VideoIcon } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { formatDate, formatDuration, formatFileSize } from "@/lib/utils";
-import type { Video } from "@/types";
-import { Download, Trash2, Video as VideoIcon } from "lucide-react";
-import { useState } from "react";
+import { type Video } from "@/types";
 
 interface VideoListProps {
     videos: Video[];

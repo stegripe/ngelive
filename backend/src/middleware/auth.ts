@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express";
+import { type NextFunction, type Request, type Response } from "express";
 import { verifyToken } from "../config/jwt";
 import { sendError } from "../utils/response";
 

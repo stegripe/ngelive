@@ -1,41 +1,40 @@
 {
-    "$schema": "https://biomejs.dev/schemas/1.4.1/schema.json",
-    "organizeImports": {
-        "enabled": true
+    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "extends": ["@stegripe/biomejs-config"],
+    "files": {
+        "includes": ["backend/src/**/*", "frontend/src/**/*", "prisma/**/*"],
+        "ignoreUnknown": true
     },
-    "linter": {
-        "enabled": true,
-        "rules": {
-            "recommended": true,
-            "complexity": {
-                "noExcessiveCognitiveComplexity": "error",
-                "noUselessLoneBlockStatements": "error"
-            },
-            "correctness": {
-                "noUnusedVariables": "error",
-                "useExhaustiveDependencies": "warn"
-            },
-            "performance": {
-                "noDelete": "error"
-            },
-            "style": {
-                "noNegationElse": "error",
-                "useConst": "error",
-                "useShorthandArrayType": "error"
-            },
-            "suspicious": {
-                "noDebugger": "error",
-                "noConsoleLog": "warn"
-            }
+    "css": {
+        "parser": {
+            "cssModules": true,
+            "tailwindDirectives": true
         }
     },
-    "formatter": {
-        "enabled": true,
-        "formatWithErrors": false,
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 100,
-        "lineEnding": "lf"
+    "linter": {
+        "rules": {
+            "correctness": {
+                "useExhaustiveDependencies": "warn"
+            },
+            "style": {
+                "noRestrictedGlobals": "off",
+                "useNamingConvention": "off",
+                "useFilenamingConvention": "off",
+                "useConsistentMemberAccessibility": "off",
+                "useBlockStatements": "off"
+            },
+            "suspicious": {
+                "noConsole": "off",
+                "useAwait": "off"
+            },
+            "a11y": {
+                "useSemanticElements": "off"
+            },
+            "nursery": {
+                "noFloatingPromises": "off",
+                "useExplicitType": "off"
+            }
+        }
     },
     "javascript": {
         "formatter": {
@@ -48,18 +47,5 @@
         "formatter": {
             "indentWidth": 4
         }
-    },
-    "files": {
-        "include": [
-            "backend/src/**/*",
-            "frontend/src/**/*",
-            "prisma/**/*"
-        ],
-        "ignore": [
-            "node_modules/**/*",
-            "dist/**/*",
-            ".next/**/*",
-            "build/**/*"
-        ]
     }
 }

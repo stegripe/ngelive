@@ -1,5 +1,8 @@
 "use client";
 
+import { Activity, Database, Monitor, Settings, Users, Video } from "lucide-react";
+import Link from "next/link";
+import { useEffect } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,9 +10,6 @@ import { useStreams } from "@/hooks/useStreams";
 import { useUsers } from "@/hooks/useUsers";
 import { useVideos } from "@/hooks/useVideos";
 import { useAuth } from "@/lib/auth";
-import { Activity, Database, Monitor, Settings, Users, Video } from "lucide-react";
-import Link from "next/link";
-import { useEffect } from "react";
 
 export default function AdminPage() {
     const { user } = useAuth();
