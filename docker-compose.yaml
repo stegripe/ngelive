@@ -1,6 +1,6 @@
 services:
   mariadb:
-    image: mariadb:11.2
+    image: mariadb:11.8
     container_name: ngelive_db
     restart: unless-stopped
     environment:

@@ -20,10 +20,11 @@ export const useUsers = () => {
 };
 
 type CreateUserData = {
-    name: string;
+    username: string;
     email: string;
     password: string;
     role: string;
+    rtmpQuota?: number;
 };
 
 export const useCreateUser = () => {
