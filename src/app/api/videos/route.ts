@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -121,6 +122,9 @@ export async function POST(request: NextRequest) {
                 },
             },
         });
+
+        // Emit event for real-time updates
+        eventEmitter.emit("video:created", { video });
 
         return sendSuccess({ video }, "Video uploaded successfully", 201);
     } catch (error) {

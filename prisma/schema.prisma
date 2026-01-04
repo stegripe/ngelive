@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-    provider = "mysql"
+    provider = "sqlite"
     url      = env("DATABASE_URL")
 }
 
@@ -12,7 +12,7 @@ model User {
     email       String   @unique
     username    String   @unique
     password    String
-    role        Role     @default(USER)
+    role        String   @default("USER")
     rtmpQuota   Int      @default(1) @map("rtmp_quota")
     isActive    Boolean  @default(true) @map("is_active")
     createdAt   DateTime @default(now()) @map("created_at")
@@ -25,16 +25,16 @@ model User {
 }
 
 model RtmpStream {
-    id          String      @id @default(cuid())
+    id          String   @id @default(cuid())
     name        String
-    streamKey   String      @unique @map("stream_key")
-    rtmpUrl     String      @map("rtmp_url")
-    isActive    Boolean     @default(false) @map("is_active")
-    isStreaming Boolean     @default(false) @map("is_streaming")
-    currentVideo String?    @map("current_video")
-    playlistMode PlaylistMode @default(LOOP) @map("playlist_mode")
-    createdAt   DateTime    @default(now()) @map("created_at")
-    updatedAt   DateTime    @updatedAt @map("updated_at")
+    streamKey   String   @unique @map("stream_key")
+    rtmpUrl     String   @map("rtmp_url")
+    isActive    Boolean  @default(false) @map("is_active")
+    isStreaming Boolean  @default(false) @map("is_streaming")
+    currentVideo String? @map("current_video")
+    playlistMode String  @default("LOOP") @map("playlist_mode")
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
 
     userId      String @map("user_id")
     user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -88,15 +88,4 @@ model StreamLog {
     stream    RtmpStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
 
     @@map("stream_logs")
-}
-
-enum Role {
-    ADMIN
-    USER
-}
-
-enum PlaylistMode {
-    LOOP
-    ONCE
-    SHUFFLE
 }

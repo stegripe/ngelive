@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -153,6 +154,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 message: `Video "${video.originalName}" added to stream by ${authUser!.email}`,
             },
         });
+
+        // Emit event for real-time updates
+        eventEmitter.emit("video:added_to_stream", { streamId: id, streamVideo });
 
         return sendSuccess({ streamVideo }, "Video added to stream successfully", 201);
     } catch (error) {

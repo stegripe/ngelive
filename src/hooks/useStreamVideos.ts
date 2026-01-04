@@ -119,7 +119,7 @@ export const useReorderStreamVideos = () => {
             videoOrders,
         }: {
             streamId: string;
-            videoOrders: { videoId: string; order: number }[];
+            videoOrders: { id: string; order: number }[];
         }) => {
             const response = await api.put(`/rtmp/${streamId}/reorder`, { videoOrders });
             return response.data;

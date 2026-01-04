@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -61,6 +62,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 message: `Playlist reordered by ${authUser!.email}`,
             },
         });
+
+        // Emit event for real-time updates
+        eventEmitter.emit("video:reordered", { streamId: id });
 
         return sendSuccess(null, "Video order updated successfully");
     } catch (error) {

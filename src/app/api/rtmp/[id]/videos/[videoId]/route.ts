@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -58,6 +59,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                 message: `Video "${streamVideo.video.originalName}" removed from stream by ${authUser!.email}`,
             },
         });
+
+        // Emit event for real-time updates
+        eventEmitter.emit("video:removed_from_stream", { streamId: id, videoId });
 
         return sendSuccess(null, "Video removed from stream successfully");
     } catch (error) {

@@ -1,44 +1,19 @@
 services:
-  mariadb:
-    image: mariadb:11.2
-    container_name: ngelive_db
-    restart: unless-stopped
-    env_file:
-      - .env
-    # Semua env diambil dari .env
-    volumes:
-      - mariadb_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
-    networks:
-      - ngelive_network
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: ngelive_app
     restart: unless-stopped
-    depends_on:
-      mariadb:
-        condition: service_healthy
     env_file:
       - .env
-    # Semua env diambil dari .env
     ports:
       - "3000:3000"
     volumes:
       - ./uploads:/app/uploads
+      - ./prisma/data.db:/app/prisma/data.db
     networks:
       - ngelive_network
-
-volumes:
-  mariadb_data:
 
 networks:
   ngelive_network:

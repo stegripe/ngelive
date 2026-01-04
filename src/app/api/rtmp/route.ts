@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { generateStreamKey } from "@/lib/rtmp";
@@ -155,6 +156,9 @@ export async function POST(request: NextRequest) {
                 message: `Stream "${name}" created by ${authUser!.email}`,
             },
         });
+
+        // Emit event for real-time updates
+        eventEmitter.emit("stream:created", { stream });
 
         return sendSuccess({ stream }, "RTMP stream created successfully", 201);
     } catch (error) {

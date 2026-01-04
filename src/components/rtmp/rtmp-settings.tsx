@@ -119,10 +119,13 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
 
         [newVideos[index], newVideos[targetIndex]] = [newVideos[targetIndex], newVideos[index]];
 
+        // Update local state optimistically
+        setStreamVideos(newVideos);
+
         reorderVideosMutation.mutate({
             streamId: stream.id,
             videoOrders: newVideos.map((sv, idx) => ({
-                videoId: sv.id,
+                id: sv.id,
                 order: idx,
             })),
         });
