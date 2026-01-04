@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -85,6 +86,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         await prisma.video.delete({
             where: { id },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("videos");
 
         return sendSuccess(null, "Video deleted successfully");
     } catch (error) {

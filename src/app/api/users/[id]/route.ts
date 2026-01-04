@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAdmin } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail } from "@/lib/validation";
@@ -162,6 +163,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
+        // Broadcast event to all connected clients
+        broadcastEvent("users");
+
         return sendSuccess({ user: updatedUser }, "User updated successfully");
     } catch (error) {
         console.error("Update user error:", error);
@@ -196,6 +200,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         await prisma.user.delete({
             where: { id },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("users");
 
         return sendSuccess({ deletedUser: user }, "User deleted successfully");
     } catch (error) {

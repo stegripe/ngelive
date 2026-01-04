@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -154,6 +155,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
+
         return sendSuccess({ streamVideo }, "Video added to stream successfully", 201);
     } catch (error) {
         console.error("Add video to stream error:", error);
@@ -232,6 +236,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 message: `Playlist updated with ${videoIds.length} videos by ${authUser!.email}`,
             },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
 
         return sendSuccess(
             { assignedVideos: videos.length },

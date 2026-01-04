@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import { startFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 message: `Stream started by ${authUser!.email}`,
             },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
 
         return sendSuccess({ message: "Stream started successfully" }, "Stream started");
     } catch (error) {

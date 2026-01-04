@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -142,6 +143,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
+
         return sendSuccess({ stream: updatedStream }, "RTMP stream updated successfully");
     } catch (error) {
         console.error("Update RTMP stream error:", error);
@@ -177,6 +181,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         await prisma.rtmpStream.delete({
             where: { id },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
 
         return sendSuccess({ deletedStream: stream }, "RTMP stream deleted successfully");
     } catch (error) {

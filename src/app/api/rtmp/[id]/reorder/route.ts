@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -61,6 +62,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 message: `Playlist reordered by ${authUser!.email}`,
             },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
 
         return sendSuccess(null, "Video order updated successfully");
     } catch (error) {

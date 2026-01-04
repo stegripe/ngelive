@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { broadcastEvent } from "@/lib/events";
 import { stopFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 message: `Stream stopped by ${authUser!.email}`,
             },
         });
+
+        // Broadcast event to all connected clients
+        broadcastEvent("streams");
 
         return sendSuccess({ message: "Stream stopped successfully" }, "Stream stopped");
     } catch (error) {
