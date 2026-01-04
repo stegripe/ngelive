@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAdmin } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail, validateRequired } from "@/lib/validation";
@@ -132,6 +133,8 @@ export async function POST(request: NextRequest) {
                 createdAt: true,
             },
         });
+
+        eventEmitter.emit("user:created", { user });
 
         return sendSuccess({ user }, "User created successfully", 201);
     } catch (error) {
