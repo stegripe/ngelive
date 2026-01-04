@@ -108,6 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             rtmpUrl?: string;
             isActive?: boolean;
             playlistMode?: string;
+            quality?: string;
         } = {};
 
         if (name) {
@@ -119,8 +120,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         if (isActive !== undefined) {
             updateData.isActive = Boolean(isActive);
         }
-        if (playlistMode && ["LOOP", "ONCE", "SHUFFLE"].includes(playlistMode)) {
+        if (playlistMode && ["LOOP", "ONCE", "SHUFFLE", "SHUFFLE_LOOP"].includes(playlistMode)) {
             updateData.playlistMode = playlistMode;
+        }
+
+        if (body.quality && ["ultralow", "low", "medium", "high"].includes(body.quality)) {
+            updateData.quality = body.quality;
         }
 
         const updatedStream = await prisma.rtmpStream.update({

@@ -122,7 +122,12 @@ export async function POST(request: NextRequest) {
             return sendError("User not found", 404);
         }
 
-        if (user._count.rtmpStreams >= user.rtmpQuota) {
+        // rtmpQuota === -1 indicates unlimited quota (e.g., admin). Only enforce when quota is non-negative.
+        if (
+            typeof user.rtmpQuota === "number" &&
+            user.rtmpQuota >= 0 &&
+            user._count.rtmpStreams >= user.rtmpQuota
+        ) {
             return sendError(
                 `RTMP quota exceeded. You can only create ${user.rtmpQuota} streams`,
                 400,

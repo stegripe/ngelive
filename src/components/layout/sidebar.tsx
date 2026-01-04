@@ -146,7 +146,9 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                             <div className="flex items-center gap-1.5">
                                 {user?.rtmpQuota === -1 || user?.role === "ADMIN" ? (
                                     <>
-                                        <span className="text-xl font-bold text-yellow-400 leading-none">∞</span>
+                                        <span className="text-xl font-bold text-yellow-400 leading-none">
+                                            ∞
+                                        </span>
                                         <span className="text-sm text-gray-400">Unlimited</span>
                                     </>
                                 ) : (

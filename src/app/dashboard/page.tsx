@@ -300,40 +300,44 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Database Status - Check based on systemStatus availability */}
-                            <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                                <div className="relative">
-                                    <Database className="h-5 w-5 text-gray-400" />
-                                    <div
-                                        className={cn(
-                                            "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
-                                            statusLoading
-                                                ? "bg-yellow-500 animate-pulse"
-                                                : systemStatus
-                                                  ? "bg-green-500"
-                                                  : "bg-red-500",
-                                        )}
-                                    />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-white">Database</p>
-                                    <p
-                                        className={cn(
-                                            "text-xs",
-                                            statusLoading
-                                                ? "text-yellow-400"
-                                                : systemStatus
-                                                  ? "text-green-400"
-                                                  : "text-red-400",
-                                        )}
-                                    >
-                                        {statusLoading
-                                            ? "Checking..."
-                                            : systemStatus
-                                              ? "Connected"
-                                              : "Error"}
-                                    </p>
-                                </div>
-                            </div>
+                            {/* Precompute classes/text to avoid nested ternary expressions */}
+                            {(() => {
+                                let dbDotClass = "bg-red-500";
+                                let dbTextClass = "text-red-400";
+                                let dbStatusText = "Error";
+
+                                if (statusLoading) {
+                                    dbDotClass = "bg-yellow-500 animate-pulse";
+                                    dbTextClass = "text-yellow-400";
+                                    dbStatusText = "Checking...";
+                                } else if (systemStatus) {
+                                    dbDotClass = "bg-green-500";
+                                    dbTextClass = "text-green-400";
+                                    dbStatusText = "Connected";
+                                }
+
+                                return (
+                                    <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                        <div className="relative">
+                                            <Database className="h-5 w-5 text-gray-400" />
+                                            <div
+                                                className={cn(
+                                                    "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
+                                                    dbDotClass,
+                                                )}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-white">
+                                                Database
+                                            </p>
+                                            <p className={cn("text-xs", dbTextClass)}>
+                                                {dbStatusText}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* FFmpeg/RTMP Status */}
                             <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">

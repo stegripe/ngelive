@@ -41,7 +41,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("RTMP stream not found", 404);
         }
 
-        if (!stream.playlistMode || !["LOOP", "ONCE", "SHUFFLE"].includes(stream.playlistMode)) {
+        if (
+            !stream.playlistMode ||
+            !["LOOP", "ONCE", "SHUFFLE", "SHUFFLE_LOOP"].includes(stream.playlistMode)
+        ) {
             stream.playlistMode = "LOOP";
         }
 

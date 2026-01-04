@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
+import { LoadingSpinner } from "@/components/ui/loading";
 
 interface LayoutWrapperProps {
     children: React.ReactNode;
@@ -24,13 +25,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-900">
-                <div className="text-center">
-                    <div className="relative">
-                        <div className="w-16 h-16 border-4 border-gray-700 rounded-full" />
-                        <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                    </div>
-                    <p className="mt-4 text-gray-400 font-medium">Loading...</p>
-                </div>
+                <LoadingSpinner size="lg" message="Loading..." />
             </div>
         );
     }
