@@ -33,7 +33,6 @@ model RtmpStream {
     isStreaming Boolean  @default(false) @map("is_streaming")
     currentVideo String? @map("current_video")
     playlistMode String  @default("LOOP") @map("playlist_mode")
-    quality      String  @default("low") @map("quality")
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
 

@@ -105,7 +105,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             rtmpUrl?: string;
             isActive?: boolean;
             playlistMode?: string;
-            quality?: string;
         } = {};
 
         if (name) {
@@ -121,9 +120,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             updateData.playlistMode = playlistMode;
         }
 
-        if (body.quality && ["ultralow", "low", "medium", "high"].includes(body.quality)) {
-            updateData.quality = body.quality;
-        }
+        // Note: Quality is now controlled globally via Settings, not per-stream
 
         const updatedStream = await prisma.rtmpStream.update({
             where: { id },

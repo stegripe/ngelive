@@ -61,7 +61,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
         name: string;
         rtmpUrl: string;
         playlistMode: string;
-        quality?: string;
     }>({
         name: "",
         rtmpUrl: "",
@@ -255,31 +254,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
                                         <option value="ONCE">Play Once</option>
                                         <option value="SHUFFLE">Shuffle</option>
                                         <option value="SHUFFLE_LOOP">Shuffle + Loop</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="quality"
-                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                    >
-                                        Stream Quality
-                                    </label>
-                                    <select
-                                        id="quality"
-                                        value={(streamInfo as any).quality || "low"}
-                                        onChange={(e) =>
-                                            setStreamInfo({
-                                                ...streamInfo,
-                                                quality: e.target.value,
-                                            })
-                                        }
-                                        className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2"
-                                    >
-                                        <option value="ultralow">Ultra-low (512MB)</option>
-                                        <option value="low">Low (1GB)</option>
-                                        <option value="medium">Medium (2GB)</option>
-                                        <option value="high">High (4GB+)</option>
                                     </select>
                                 </div>
 

@@ -97,7 +97,6 @@ export interface FFmpegStream {
     streamVideos: FFmpegStreamVideo[];
     playlistMode: string;
     rtmpUrl: string;
-    quality?: string;
 }
 
 export interface FFmpegStreamVideo {
@@ -268,10 +267,8 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
         const shuffleMode =
             stream.playlistMode === "SHUFFLE" || stream.playlistMode === "SHUFFLE_LOOP";
 
-        const qualityLevel = (stream as any).quality || CONFIG.CURRENT_QUALITY;
-        const getPreset = (level: string) =>
-            (QUALITY_PRESETS as Record<string, QualityPreset>)[level] ||
-            QUALITY_PRESETS[CONFIG.CURRENT_QUALITY];
+        // Use only global quality setting for consistency
+        const getPreset = () => QUALITY_PRESETS[CONFIG.CURRENT_QUALITY];
 
         if (shuffleMode) {
             for (let i = videoFiles.length - 1; i > 0; i--) {
@@ -290,6 +287,12 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                         break;
                     }
 
+                    // Check if stream was removed (stop requested)
+                    if (!runningStreams.has(stream.id)) {
+                        stopRequested = true;
+                        break;
+                    }
+
                     const currentVideo = videoFiles[videoIndex];
 
                     try {
@@ -303,7 +306,7 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
 
                     const useCopyMode = await canUseCopyMode(currentVideo.path);
 
-                    const preset = getPreset(qualityLevel);
+                    const preset = getPreset();
                     const ffmpegArgs = useCopyMode
                         ? buildFFmpegArgsCopyMode(currentVideo.path, stream.rtmpUrl)
                         : buildFFmpegArgs(currentVideo.path, stream.rtmpUrl, preset);
@@ -471,16 +474,29 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     if (streamInfo) {
         const { process: ffmpeg } = streamInfo;
 
-        ffmpeg.stdin?.write("q");
+        // First, remove from running streams to signal the loop to stop
+        runningStreams.delete(streamId);
+
+        // Try graceful quit first
+        try {
+            ffmpeg.stdin?.write("q");
+        } catch {
+            // stdin might be closed
+        }
 
         await new Promise<void>((resolve) => {
+            // Increase timeout to 10 seconds for graceful shutdown
             const timeout = setTimeout(() => {
                 if (!ffmpeg.killed) {
                     console.warn(`[FFmpeg] Force killing stream ${streamId}`);
-                    ffmpeg.kill("SIGKILL");
+                    try {
+                        ffmpeg.kill("SIGKILL");
+                    } catch {
+                        // Process might already be dead
+                    }
                 }
                 resolve();
-            }, 3000);
+            }, 10000);
 
             ffmpeg.on("close", () => {
                 clearTimeout(timeout);
@@ -488,7 +504,6 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
             });
         });
 
-        runningStreams.delete(streamId);
         console.info(`[FFmpeg] Stream ${streamId} stopped`);
     }
 };
