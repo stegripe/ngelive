@@ -59,7 +59,6 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | SQLite database path | `file:./data.db` |
 | `JWT_SECRET` | Secret for JWT tokens | (required) |
 | `ADMIN_EMAIL` | Initial admin email | `admin@stegripe.org` |
 | `ADMIN_PASSWORD` | Initial admin password | `admin123` |
@@ -97,7 +96,9 @@ ngelive/
 │   ├── hooks/       # Custom React hooks
 │   ├── lib/         # Utilities and services
 │   └── types/       # TypeScript types
-├── uploads/         # Uploaded video files
+├── cache/           # Data storage (auto-created)
+│   ├── data.db      # SQLite database
+│   └── video/       # Uploaded video files
 └── docker-compose.yaml
 ```
 

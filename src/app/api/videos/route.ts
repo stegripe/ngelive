@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Ensure uploads directory exists
-        const uploadsDir = path.join(globalThis.process.cwd(), "uploads");
+        // Ensure cache/video directory exists
+        const uploadsDir = path.join(globalThis.process.cwd(), "cache", "video");
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }

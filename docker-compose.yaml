@@ -10,8 +10,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./uploads:/app/uploads
-      - ./prisma/data.db:/app/prisma/data.db
+      - ./cache:/app/cache
     networks:
       - ngelive_network
 

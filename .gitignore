@@ -22,8 +22,8 @@ build/
 logs/
 *.log
 
-# Uploads
-uploads/
+# Cache (videos & database)
+cache/
 
 # OS files
 .DS_Store
@@ -36,6 +36,5 @@ Thumbs.db
 *.swo
 
 # Misc
-.cache/
 .temp/
 .tmp/
