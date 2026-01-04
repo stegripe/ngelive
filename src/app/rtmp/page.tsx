@@ -27,7 +27,8 @@ export default function RtmpPage() {
     );
 
     const activeStreams = streams.filter((s: Stream) => s.isStreaming).length;
-    const canCreateMore = (user?.rtmpQuota || 0) > streams.length;
+    const isUnlimited = user?.rtmpQuota === -1 || user?.role === "ADMIN";
+    const canCreateMore = isUnlimited || (user?.rtmpQuota || 0) > streams.length;
 
     if (isLoading) {
         return (
@@ -117,7 +118,11 @@ export default function RtmpPage() {
                             <div>
                                 <p className="text-xs text-gray-500">Quota Used</p>
                                 <p className="text-xl font-bold text-white">
-                                    {streams.length}/{user?.rtmpQuota || 0}
+                                    {isUnlimited ? (
+                                        <span className="text-yellow-400">∞ Unlimited</span>
+                                    ) : (
+                                        `${streams.length}/${user?.rtmpQuota || 0}`
+                                    )}
                                 </p>
                             </div>
                         </div>

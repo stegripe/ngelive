@@ -15,7 +15,7 @@ async function main() {
             username: "admin",
             password: adminPassword,
             role: "ADMIN",
-            rtmpQuota: 999,
+            rtmpQuota: -1, // -1 means unlimited for admin
         },
     });
 
@@ -30,7 +30,7 @@ async function main() {
             username: "user",
             password: userPassword,
             role: "USER",
-            rtmpQuota: 1,
+            rtmpQuota: 2, // Default quota for regular users
         },
     });
 

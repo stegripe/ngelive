@@ -2,7 +2,9 @@
 
 import {
     Activity,
+    AlertCircle,
     ArrowRight,
+    CheckCircle,
     Clock,
     Database,
     Monitor,
@@ -18,6 +20,7 @@ import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStreams } from "@/hooks/useStreams";
+import { useSystemStatus } from "@/hooks/useSystemStatus";
 import { useUsers } from "@/hooks/useUsers";
 import { useVideos } from "@/hooks/useVideos";
 import { useAuth } from "@/lib/auth-context";
@@ -29,6 +32,7 @@ export default function DashboardPage() {
     const { data: streams = [], isLoading: streamsLoading } = useStreams();
     const { data: videos = [], isLoading: videosLoading } = useVideos();
     const { data: users = [], isLoading: usersLoading } = useUsers();
+    const { data: systemStatus, isLoading: statusLoading } = useSystemStatus();
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("en-US", {
@@ -288,31 +292,134 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {[
-                                { name: "Server", icon: Server, status: "Online" },
-                                { name: "Database", icon: Database, status: "Connected" },
-                                { name: "RTMP Server", icon: Radio, status: "Ready" },
-                            ].map((item) => {
-                                const Icon = item.icon;
-                                return (
+                            {/* Server Status */}
+                            <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                <div className="relative">
+                                    <Server className="h-5 w-5 text-gray-400" />
                                     <div
-                                        key={item.name}
-                                        className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50"
+                                        className={cn(
+                                            "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
+                                            "bg-green-500",
+                                        )}
+                                    />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-white">Server</p>
+                                    <p className="text-xs text-green-400">Online</p>
+                                </div>
+                            </div>
+
+                            {/* Database Status */}
+                            <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                <div className="relative">
+                                    <Database className="h-5 w-5 text-gray-400" />
+                                    <div
+                                        className={cn(
+                                            "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
+                                            stats.users > 0 ? "bg-green-500" : "bg-yellow-500",
+                                        )}
+                                    />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-white">Database</p>
+                                    <p
+                                        className={cn(
+                                            "text-xs",
+                                            stats.users > 0 ? "text-green-400" : "text-yellow-400",
+                                        )}
                                     >
-                                        <div className="relative">
-                                            <Icon className="h-5 w-5 text-gray-400" />
-                                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-gray-800" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-white">
-                                                {item.name}
-                                            </p>
-                                            <p className="text-xs text-green-400">{item.status}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                        {stats.users > 0 ? "Connected" : "Checking..."}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* FFmpeg/RTMP Status */}
+                            <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                <div className="relative">
+                                    <Radio className="h-5 w-5 text-gray-400" />
+                                    <div
+                                        className={cn(
+                                            "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
+                                            statusLoading && "bg-yellow-500 animate-pulse",
+                                            !statusLoading &&
+                                                systemStatus?.ffmpegAvailable &&
+                                                "bg-green-500",
+                                            !statusLoading &&
+                                                !systemStatus?.ffmpegAvailable &&
+                                                "bg-red-500",
+                                        )}
+                                    />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-white">FFmpeg</p>
+                                    <p
+                                        className={cn(
+                                            "text-xs",
+                                            statusLoading && "text-yellow-400",
+                                            !statusLoading &&
+                                                systemStatus?.ffmpegAvailable &&
+                                                "text-green-400",
+                                            !statusLoading &&
+                                                !systemStatus?.ffmpegAvailable &&
+                                                "text-red-400",
+                                        )}
+                                    >
+                                        {statusLoading && "Checking..."}
+                                        {!statusLoading && systemStatus?.ffmpegAvailable && "Ready"}
+                                        {!statusLoading &&
+                                            !systemStatus?.ffmpegAvailable &&
+                                            "Not Available"}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Additional System Info for Admins */}
+                        {user?.role === "ADMIN" && systemStatus && (
+                            <div className="mt-4 pt-4 border-t border-gray-700/50">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <Activity className="h-4 w-4 text-gray-500" />
+                                        <span className="text-gray-400">Active Streams:</span>
+                                        <span className="text-white font-medium">
+                                            {systemStatus.activeStreams}/{systemStatus.maxStreams}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Server className="h-4 w-4 text-gray-500" />
+                                        <span className="text-gray-400">Memory:</span>
+                                        <span className="text-white font-medium">
+                                            {systemStatus.availableMemoryMB} MB
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Video className="h-4 w-4 text-gray-500" />
+                                        <span className="text-gray-400">Quality:</span>
+                                        <span className="text-white font-medium capitalize">
+                                            {systemStatus.currentQuality}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {systemStatus.ffmpegAvailable ? (
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                        )}
+                                        <span className="text-gray-400">FFmpeg:</span>
+                                        <span
+                                            className={cn(
+                                                "font-medium",
+                                                systemStatus.ffmpegAvailable
+                                                    ? "text-green-400"
+                                                    : "text-red-400",
+                                            )}
+                                        >
+                                            {systemStatus.ffmpegAvailable ? "Installed" : "Missing"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

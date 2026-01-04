@@ -217,10 +217,21 @@ export default function AdminUsersPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-white font-medium">
-                                                {user.rtmpQuota}
-                                            </span>
-                                            <span className="text-gray-500 text-sm"> streams</span>
+                                            {user.role === "ADMIN" || user.rtmpQuota === -1 ? (
+                                                <span className="text-yellow-400 font-medium">
+                                                    ∞ Unlimited
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    <span className="text-white font-medium">
+                                                        {user.rtmpQuota}
+                                                    </span>
+                                                    <span className="text-gray-500 text-sm">
+                                                        {" "}
+                                                        streams
+                                                    </span>
+                                                </>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span
@@ -304,9 +315,15 @@ export default function AdminUsersPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="text-sm">
                                         <span className="text-gray-500">Quota: </span>
-                                        <span className="text-white font-medium">
-                                            {user.rtmpQuota}
-                                        </span>
+                                        {user.role === "ADMIN" || user.rtmpQuota === -1 ? (
+                                            <span className="text-yellow-400 font-medium">
+                                                ∞ Unlimited
+                                            </span>
+                                        ) : (
+                                            <span className="text-white font-medium">
+                                                {user.rtmpQuota}
+                                            </span>
+                                        )}
                                     </div>
                                     <span
                                         className={cn(

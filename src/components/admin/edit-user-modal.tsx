@@ -98,6 +98,27 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
             newValue = Number.parseInt(value, 10);
         }
 
+        // Handle role change: set quota to -1 for admin, or 2 for user (if currently -1)
+        if (name === "role") {
+            if (value === "ADMIN") {
+                setFormData((prev) => ({
+                    ...prev,
+                    role: value,
+                    rtmpQuota: -1, // Unlimited for admin
+                }));
+                return;
+            }
+            // Demoting to USER - set default quota if currently unlimited
+            if (value === "USER" && formData.rtmpQuota === -1) {
+                setFormData((prev) => ({
+                    ...prev,
+                    role: value,
+                    rtmpQuota: 2, // Default quota for users
+                }));
+                return;
+            }
+        }
+
         setFormData((prev) => ({
             ...prev,
             [name]: newValue,
@@ -209,16 +230,22 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
                         >
                             RTMP Quota
                         </label>
-                        <Input
-                            id="edit-rtmp-quota"
-                            name="rtmpQuota"
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={formData.rtmpQuota}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
+                        {formData.role === "ADMIN" ? (
+                            <div className="w-full bg-gray-700/50 text-yellow-400 border border-gray-600 rounded-lg px-3 py-2 cursor-not-allowed">
+                                ∞ Unlimited (Admin)
+                            </div>
+                        ) : (
+                            <Input
+                                id="edit-rtmp-quota"
+                                name="rtmpQuota"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={formData.rtmpQuota}
+                                onChange={handleChange}
+                                className="w-full"
+                            />
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between">

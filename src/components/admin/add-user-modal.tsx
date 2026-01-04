@@ -18,7 +18,7 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
         email: "",
         password: "",
         role: "USER",
-        rtmpQuota: 1,
+        rtmpQuota: 2,
     });
 
     const createUserMutation = useCreateUser();
@@ -26,7 +26,13 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        createUserMutation.mutate(formData, {
+        // Set quota to -1 for admin users
+        const submitData = {
+            ...formData,
+            rtmpQuota: formData.role === "ADMIN" ? -1 : formData.rtmpQuota,
+        };
+
+        createUserMutation.mutate(submitData, {
             onSuccess: () => {
                 onSuccess();
                 onClose();
@@ -35,7 +41,7 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
                     email: "",
                     password: "",
                     role: "USER",
-                    rtmpQuota: 1,
+                    rtmpQuota: 2,
                 });
             },
         });
@@ -43,6 +49,17 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+
+        // Handle role change
+        if (name === "role") {
+            setFormData((prev) => ({
+                ...prev,
+                role: value,
+                rtmpQuota: value === "ADMIN" ? -1 : 2,
+            }));
+            return;
+        }
+
         setFormData((prev) => ({
             ...prev,
             [name]: name === "rtmpQuota" ? Number.parseInt(value, 10) : value,
@@ -155,16 +172,22 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
                         >
                             RTMP Quota
                         </label>
-                        <Input
-                            id="rtmpQuota"
-                            name="rtmpQuota"
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={formData.rtmpQuota}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
+                        {formData.role === "ADMIN" ? (
+                            <div className="w-full bg-gray-700/50 text-yellow-400 border border-gray-600 rounded-lg px-3 py-2 cursor-not-allowed">
+                                ∞ Unlimited (Admin)
+                            </div>
+                        ) : (
+                            <Input
+                                id="rtmpQuota"
+                                name="rtmpQuota"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={formData.rtmpQuota}
+                                onChange={handleChange}
+                                className="w-full"
+                            />
+                        )}
                     </div>
 
                     <div className="flex gap-2">

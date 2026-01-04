@@ -144,14 +144,25 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                 </span>
                             </div>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-white tabular-nums">
-                                    {typeof user?.rtmpQuota === "number" ? (
-                                        user.rtmpQuota
-                                    ) : (
-                                        <span className="opacity-50">0</span>
-                                    )}
-                                </span>
-                                <span className="text-xs text-gray-500">streams available</span>
+                                {user?.rtmpQuota === -1 || user?.role === "ADMIN" ? (
+                                    <>
+                                        <span className="text-lg font-bold text-yellow-400">∞</span>
+                                        <span className="text-xs text-gray-500">Unlimited</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-2xl font-bold text-white tabular-nums">
+                                            {typeof user?.rtmpQuota === "number" ? (
+                                                user.rtmpQuota
+                                            ) : (
+                                                <span className="opacity-50">0</span>
+                                            )}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                            streams available
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
                         {/* Watermark */}
