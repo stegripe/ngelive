@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isStandalone =
+    // biome-ignore lint/style/noRestrictedGlobals: false
     typeof process !== "undefined" && process.env && process.env.STANDALONE === "true";
 const nextConfig = {
     ...(isStandalone && { output: "standalone" }),
