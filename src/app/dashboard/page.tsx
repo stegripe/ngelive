@@ -291,12 +291,7 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
                                 <div className="relative">
                                     <Server className="h-5 w-5 text-gray-400" />
-                                    <div
-                                        className={cn(
-                                            "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
-                                            "bg-green-500",
-                                        )}
-                                    />
+                                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800 bg-green-500" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-white">Server</p>
@@ -304,14 +299,18 @@ export default function DashboardPage() {
                                 </div>
                             </div>
 
-                            {/* Database Status */}
+                            {/* Database Status - Check based on systemStatus availability */}
                             <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
                                 <div className="relative">
                                     <Database className="h-5 w-5 text-gray-400" />
                                     <div
                                         className={cn(
                                             "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
-                                            stats.users > 0 ? "bg-green-500" : "bg-yellow-500",
+                                            statusLoading
+                                                ? "bg-yellow-500 animate-pulse"
+                                                : systemStatus
+                                                  ? "bg-green-500"
+                                                  : "bg-red-500",
                                         )}
                                     />
                                 </div>
@@ -320,10 +319,18 @@ export default function DashboardPage() {
                                     <p
                                         className={cn(
                                             "text-xs",
-                                            stats.users > 0 ? "text-green-400" : "text-yellow-400",
+                                            statusLoading
+                                                ? "text-yellow-400"
+                                                : systemStatus
+                                                  ? "text-green-400"
+                                                  : "text-red-400",
                                         )}
                                     >
-                                        {stats.users > 0 ? "Connected" : "Checking..."}
+                                        {statusLoading
+                                            ? "Checking..."
+                                            : systemStatus
+                                              ? "Connected"
+                                              : "Error"}
                                     </p>
                                 </div>
                             </div>
