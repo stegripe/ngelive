@@ -6,6 +6,9 @@ import { sendError, sendSuccess } from "@/lib/response";
 import { generateStreamKey } from "@/lib/rtmp";
 import { validateRequired } from "@/lib/validation";
 
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
 // GET /api/rtmp - List RTMP streams
 export async function GET(request: NextRequest) {
     try {

@@ -1,13 +1,16 @@
 import { type NextRequest } from "next/server";
-import { getAuthUser, requireAdmin } from "@/lib/auth";
+import { getAuthUser, requireAdmin, requireAuth } from "@/lib/auth";
 import { getSystemStatus, setQualityPreset } from "@/lib/ffmpeg";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// GET /api/system/status - Get system status (Admin only)
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
+// GET /api/system/status - Get system status (All authenticated users)
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
-        const authError = requireAdmin(authUser);
+        const authError = requireAuth(authUser);
         if (authError) {
             return authError;
         }

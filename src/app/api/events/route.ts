@@ -3,6 +3,9 @@ import { type NextRequest } from "next/server";
 import eventEmitter, { type AppEvent } from "@/lib/event-emitter";
 import { verifyToken } from "@/lib/jwt";
 
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
 // SSE endpoint for real-time updates
 export function GET(request: NextRequest) {
     // Get token from query params (EventSource doesn't support custom headers)

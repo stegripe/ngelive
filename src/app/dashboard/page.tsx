@@ -19,6 +19,7 @@ import Link from "next/link";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { useStreams } from "@/hooks/useStreams";
 import { useSystemStatus } from "@/hooks/useSystemStatus";
 import { useUsers } from "@/hooks/useUsers";
@@ -57,13 +58,7 @@ export default function DashboardPage() {
         return (
             <LayoutWrapper>
                 <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="relative">
-                            <div className="w-12 h-12 border-4 border-gray-700 rounded-full" />
-                            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                        </div>
-                        <p className="mt-4 text-gray-400">Loading dashboard...</p>
-                    </div>
+                    <LoadingSpinner message="Loading dashboard..." />
                 </div>
             </LayoutWrapper>
         );

@@ -5,6 +5,9 @@ import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail, validateRequired } from "@/lib/validation";
 
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
 // POST /api/auth/login
 export async function POST(request: NextRequest) {
     try {

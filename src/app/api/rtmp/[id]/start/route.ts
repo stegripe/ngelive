@@ -6,6 +6,9 @@ import { startFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
