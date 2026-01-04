@@ -143,11 +143,11 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                     RTMP Quota
                                 </span>
                             </div>
-                            <div className="flex items-baseline gap-1">
+                            <div className="flex items-center gap-1.5">
                                 {user?.rtmpQuota === -1 || user?.role === "ADMIN" ? (
                                     <>
-                                        <span className="text-lg font-bold text-yellow-400">∞</span>
-                                        <span className="text-xs text-gray-500">Unlimited</span>
+                                        <span className="text-xl font-bold text-yellow-400 leading-none">∞</span>
+                                        <span className="text-sm text-gray-400">Unlimited</span>
                                     </>
                                 ) : (
                                     <>
