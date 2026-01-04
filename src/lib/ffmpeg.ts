@@ -216,12 +216,14 @@ const buildFFmpegArgsConcatMode = (
     preset?: QualityPreset,
 ): string[] => {
     // Copy mode - just remux without re-encoding (fast, low CPU)
+    // BUT: This can fail if videos have different codecs/timestamps
     if (!useAdvancedSettings) {
         return [
             "-nostdin",
             "-loglevel", "warning",
             "-re",
-            "-fflags", "+genpts+igndts",
+            "-fflags", "+genpts+igndts+discardcorrupt",
+            "-avoid_negative_ts", "make_zero",
             "-f", "concat",
             "-safe", "0",
             "-i", concatFile,
@@ -230,41 +232,41 @@ const buildFFmpegArgsConcatMode = (
             "-b:a", "128k",
             "-ar", "44100",
             "-f", "flv",
+            "-flvflags", "no_duration_filesize",
             rtmpUrl,
         ];
     }
 
-    // Advanced mode - re-encode with quality settings
+    // Advanced mode - re-encode with quality settings (more stable, like autostream.bat)
     const p = preset || getQualityPreset();
-    const [width, height] = p.resolution.split("x");
-    const gopSize = 60; // 2 seconds at 30fps
+    const gopSize = 120; // 4 seconds at 30fps (like autostream.bat with -g 120)
 
     return [
         "-nostdin",
         "-loglevel", "warning",
         "-re",
-        "-fflags", "+genpts+igndts",
+        "-fflags", "+genpts+igndts+discardcorrupt",
+        "-avoid_negative_ts", "make_zero",
         "-f", "concat",
         "-safe", "0",
         "-i", concatFile,
+        // Video encoding similar to autostream.bat
+        "-vf", "scale=1920:1080",
         "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-profile:v", "high",
-        "-level", "4.1",
-        "-b:v", p.videoBitrate,
-        "-maxrate", p.maxrate,
-        "-bufsize", p.bufsize,
+        "-preset", "superfast",
+        "-tune", "zerolatency",
+        "-b:v", "5000k",
+        "-maxrate", "6000k",
+        "-bufsize", "10000k",
         "-pix_fmt", "yuv420p",
         "-g", gopSize.toString(),
-        "-keyint_min", gopSize.toString(),
-        "-sc_threshold", "0",
-        "-vf", `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
-        "-r", "30",
+        // Audio
         "-c:a", "aac",
         "-b:a", "128k",
         "-ar", "44100",
         "-ac", "2",
         "-f", "flv",
+        "-flvflags", "no_duration_filesize",
         rtmpUrl,
     ];
 };
@@ -439,15 +441,10 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             const wasActive = runningStreams.delete(stream.id);
             const isManualStop = manuallyStoppingStreams.has(stream.id);
 
-            // Clean up concat file
-            try {
-                if (fs.existsSync(concatFile)) {
-                    fs.unlinkSync(concatFile);
-                    console.log(`[FFmpeg] Cleaned up concat file: ${concatFile}`);
-                }
-            } catch (e) {
-                console.error(`[FFmpeg] Error cleaning up concat file:`, e);
-            }
+            // Clean up concat file asynchronously (with retry for Windows EBUSY)
+            cleanupConcatFile(concatFile).catch(e => {
+                console.error(`[FFmpeg] Error in exit cleanup:`, e);
+            });
 
             // If manually stopped, don't retry
             if (isManualStop) {
@@ -594,6 +591,33 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
     }
 };
 
+// Async cleanup of concat file with retry for Windows EBUSY
+async function cleanupConcatFile(concatFile: string): Promise<void> {
+    const maxRetries = 5;
+    const retryDelay = 500; // 500ms between retries
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            if (fs.existsSync(concatFile)) {
+                fs.unlinkSync(concatFile);
+                console.log(`[FFmpeg] Cleaned up concat file: ${concatFile}`);
+            }
+            return;
+        } catch (e: unknown) {
+            const error = e as NodeJS.ErrnoException;
+            if (error.code === "EBUSY" && attempt < maxRetries - 1) {
+                // File is still locked by FFmpeg, wait and retry
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                continue;
+            }
+            // Last attempt or different error
+            if (attempt === maxRetries - 1) {
+                console.warn(`[FFmpeg] Could not delete concat file after ${maxRetries} attempts, will be cleaned up later: ${concatFile}`);
+            }
+        }
+    }
+}
+
 export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     const streamInfo = runningStreams.get(streamId);
     const isActive = streamInfo !== undefined;
@@ -622,8 +646,9 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     manuallyStoppingStreams.add(streamId);
 
     const ffmpegProcess = streamInfo.process;
+    const concatFile = streamInfo.concatFile;
 
-    // Kill the process
+    // Kill the process first
     try {
         if (ffmpegProcess && typeof ffmpegProcess.kill === "function") {
             ffmpegProcess.kill("SIGTERM");
@@ -633,22 +658,21 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
         manuallyStoppingStreams.delete(streamId);
     }
 
-    // Clean up concat file
-    if (streamInfo.concatFile) {
-        try {
-            if (fs.existsSync(streamInfo.concatFile)) {
-                fs.unlinkSync(streamInfo.concatFile);
-                console.log(`[FFmpeg] Cleaned up concat file: ${streamInfo.concatFile}`);
-            }
-        } catch (e) {
-            console.error(`[FFmpeg] Error cleaning up concat file:`, e);
-        }
-    }
-
+    // Remove from running streams immediately
     runningStreams.delete(streamId);
     cleanupStreamData(streamId);
 
     console.info(`[FFmpeg] Stream ${streamId} stopped`);
+
+    // Clean up concat file asynchronously (with retry for Windows EBUSY)
+    if (concatFile) {
+        // Delay cleanup to allow FFmpeg to fully release the file
+        setTimeout(() => {
+            cleanupConcatFile(concatFile).catch(e => {
+                console.error(`[FFmpeg] Error in async cleanup:`, e);
+            });
+        }, 1000);
+    }
 };
 
 export const getRunningStreams = (): string[] => {
