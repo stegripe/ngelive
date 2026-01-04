@@ -22,10 +22,12 @@ interface StreamProcess {
 
 const runningStreams: Map<string, StreamProcess> = new Map();
 const manuallyStoppingStreams: Set<string> = new Set();
+const startingStreams: Set<string> = new Set(); // Tracks streams in startup phase
 const streamRetryCount: Map<string, number> = new Map();
 const streamLastSuccessTime: Map<string, number> = new Map();
 const MAX_RETRY_ATTEMPTS = 10;
 const RETRY_RESET_INTERVAL = 30 * 60 * 1000; // 30 minutes
+const STARTUP_GRACE_PERIOD_MS = 15000; // 15 seconds grace period for startup
 
 interface QualityPreset {
     resolution: string;
@@ -341,6 +343,11 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             return false;
         }
 
+        if (startingStreams.has(stream.id)) {
+            console.info(`[FFmpeg] Stream ${stream.id} is currently starting up`);
+            return false;
+        }
+
         if (!checkFFmpegAvailable()) {
             console.error("[FFmpeg] FFmpeg is not installed or not in PATH");
             return false;
@@ -380,6 +387,9 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             videoPaths = [...videoPaths].sort(() => Math.random() - 0.5);
         }
 
+        // Mark stream as starting (to prevent sync from interfering)
+        startingStreams.add(stream.id);
+
         // Create concat file (like StreamFlow approach)
         const concatFile = createConcatFile(stream.id, videoPaths, loopForever);
 
@@ -395,7 +405,7 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             stdio: ["ignore", "pipe", "pipe"],
         });
 
-        // Store stream info
+        // Store stream info IMMEDIATELY after spawn
         const startTimeIso = new Date();
         runningStreams.set(stream.id, {
             process: ffmpegProcess,
@@ -407,6 +417,11 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
         });
 
         streamLastSuccessTime.set(stream.id, Date.now());
+
+        // Remove from starting set after grace period
+        setTimeout(() => {
+            startingStreams.delete(stream.id);
+        }, STARTUP_GRACE_PERIOD_MS);
 
         // Handle stdout
         ffmpegProcess.stdout?.on("data", (data) => {
@@ -437,6 +452,9 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
         // Handle process exit
         ffmpegProcess.on("exit", async (code, signal) => {
             console.log(`[FFmpeg] Stream ${stream.id} ended with code ${code}, signal: ${signal}`);
+
+            // Clean up startup tracking
+            startingStreams.delete(stream.id);
 
             const wasActive = runningStreams.delete(stream.id);
             const isManualStop = manuallyStoppingStreams.has(stream.id);
@@ -565,6 +583,7 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
         // Handle process error
         ffmpegProcess.on("error", async (err) => {
             console.error(`[FFmpeg] Process error for stream ${stream.id}:`, err.message);
+            startingStreams.delete(stream.id);
             runningStreams.delete(stream.id);
             try {
                 await prisma.rtmpStream.update({
@@ -621,8 +640,12 @@ async function cleanupConcatFile(concatFile: string): Promise<void> {
 export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     const streamInfo = runningStreams.get(streamId);
     const isActive = streamInfo !== undefined;
+    const isStarting = startingStreams.has(streamId);
 
-    console.log(`[FFmpeg] Stop request for stream ${streamId}, isActive: ${isActive}`);
+    console.log(`[FFmpeg] Stop request for stream ${streamId}, isActive: ${isActive}, isStarting: ${isStarting}`);
+
+    // Clean up starting state
+    startingStreams.delete(streamId);
 
     if (!isActive) {
         // Stream not active in memory, but might be marked as live in DB
@@ -725,6 +748,13 @@ export const syncStreamStatuses = async (): Promise<void> => {
 
         for (const stream of liveStreams) {
             const isReallyActive = runningStreams.has(stream.id);
+            const isStartingUp = startingStreams.has(stream.id);
+
+            // Skip streams that are currently starting up
+            if (isStartingUp) {
+                console.log(`[FFmpeg] Stream ${stream.id} is starting up, skipping sync`);
+                continue;
+            }
 
             if (!isReallyActive) {
                 // Check if it's in retry process
