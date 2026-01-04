@@ -40,8 +40,8 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="flex">
+        <div className="bg-gray-900 h-screen">
+            <div className="flex h-full">
                 {/* Sidebar */}
                 <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 

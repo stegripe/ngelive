@@ -41,7 +41,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
             {/* Sidebar */}
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64",
+                    "fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64 h-full",
                     open ? "translate-x-0" : "-translate-x-full",
                 )}
             >
@@ -64,7 +64,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                    <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto">
                         <div className="mb-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             Menu
                         </div>
@@ -134,9 +134,9 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                         )}
                     </nav>
 
-                    {/* Footer with quota */}
-                    <div className="p-4 border-t border-gray-800">
-                        <div className="p-3 bg-gray-800/50 rounded-lg mb-3">
+                    {/* Footer with quota - always at the very bottom, never floats up */}
+                    <div className="p-4 border-t border-gray-800 flex-shrink-0">
+                        <div className="p-3 bg-gray-800/50 rounded-lg mb-3 min-h-[64px] flex flex-col justify-center">
                             <div className="flex items-center gap-2 mb-2">
                                 <Zap className="h-4 w-4 text-yellow-500" />
                                 <span className="text-xs font-semibold text-gray-300">
@@ -144,13 +144,16 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                 </span>
                             </div>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-white">
-                                    {user?.rtmpQuota || 0}
+                                <span className="text-2xl font-bold text-white tabular-nums">
+                                    {typeof user?.rtmpQuota === "number" ? (
+                                        user.rtmpQuota
+                                    ) : (
+                                        <span className="opacity-50">0</span>
+                                    )}
                                 </span>
                                 <span className="text-xs text-gray-500">streams available</span>
                             </div>
                         </div>
-
                         {/* Watermark */}
                         <div className="text-center">
                             <p className="text-[10px] text-gray-600">
