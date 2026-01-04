@@ -174,7 +174,7 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
                         </label>
                         {formData.role === "ADMIN" ? (
                             <div className="w-full bg-gray-700/50 text-yellow-400 border border-gray-600 rounded-lg px-3 py-2 cursor-not-allowed">
-                                ∞ Unlimited (Admin)
+                                ∞ Unlimited
                             </div>
                         ) : (
                             <Input
