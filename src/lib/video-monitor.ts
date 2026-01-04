@@ -1,13 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
+import nodeProcess from "node:process";
+import { setInterval } from "node:timers";
 import prisma from "./prisma";
 
-const VIDEO_DIR = path.resolve(process.cwd(), "cache", "video");
+const _VIDEO_DIR = path.resolve(nodeProcess.cwd(), "cache", "video");
 
 let monitorStarted = false;
 
 export function startVideoMonitor(intervalMs = 30_000) {
-    if (monitorStarted) return;
+    if (monitorStarted) {
+        return;
+    }
     monitorStarted = true;
 
     const checkOnce = async () => {
@@ -15,7 +19,9 @@ export function startVideoMonitor(intervalMs = 30_000) {
             const videos = await prisma.video.findMany({ select: { id: true, path: true } });
 
             for (const v of videos) {
-                if (!v.path) continue;
+                if (!v.path) {
+                    continue;
+                }
                 if (!fs.existsSync(v.path)) {
                     // Remove video and related stream entries
                     try {
@@ -29,7 +35,9 @@ export function startVideoMonitor(intervalMs = 30_000) {
                                     message: `Video ${v.id} removed because file missing: ${v.path}`,
                                 },
                             })
-                            .catch(() => {});
+                            .catch((e) => {
+                                void e;
+                            });
                     } catch (e) {
                         console.error("Video monitor delete error:", e);
                     }

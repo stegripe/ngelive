@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
-import { LoadingSpinner } from "@/components/ui/loading";
 
 interface LayoutWrapperProps {
     children: React.ReactNode;

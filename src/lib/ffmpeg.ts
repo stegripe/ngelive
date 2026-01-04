@@ -513,7 +513,9 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
         // Start background monitors once
         try {
             startVideoMonitor();
-        } catch {}
+        } catch (e) {
+            void e;
+        }
 
         runLoop().catch((e) => {
             console.error(`[FFmpeg] Stream loop error:`, e);
