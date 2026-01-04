@@ -2,9 +2,11 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 
-# Install FFmpeg and pnpm
+# Install FFmpeg
 RUN apk add --no-cache ffmpeg
-RUN npm install -g pnpm
+
+# Enable corepack and install pnpm with specific version
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
 # --- Dependencies layer ---
 FROM base AS deps
