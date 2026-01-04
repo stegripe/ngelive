@@ -100,10 +100,14 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                 </div>
                                 {adminNavigation.map((item) => {
                                     const Icon = item.icon;
-                                    const isActive =
-                                        pathname === item.href ||
-                                        pathname.startsWith(`${item.href}/`);
-
+                                    let isActive = false;
+                                    if (item.href === "/admin/users") {
+                                        isActive =
+                                            pathname === "/admin/users" ||
+                                            pathname.startsWith("/admin/users/");
+                                    } else if (item.href === "/admin") {
+                                        isActive = pathname === "/admin";
+                                    }
                                     return (
                                         <Link
                                             key={item.name}
