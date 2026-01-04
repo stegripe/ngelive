@@ -20,6 +20,6 @@ export function useSystemStatus() {
             return response.data.data.status as SystemStatus;
         },
         refetchInterval: 30000, // Refetch every 30 seconds
-        staleTime: 10000, // Consider data fresh for 10 seconds
+        staleTime: 25000, // Consider data fresh for 25 seconds
     });
 }
