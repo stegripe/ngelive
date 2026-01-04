@@ -1,5 +1,6 @@
 {
     "name": "ngelive",
+    "type": "module",
     "version": "2.0.0",
     "description": "Live streaming management system - Unified Next.js Application",
     "scripts": {
