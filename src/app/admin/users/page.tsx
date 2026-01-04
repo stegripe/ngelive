@@ -219,7 +219,7 @@ export default function AdminUsersPage() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.role === "ADMIN" || user.rtmpQuota === -1 ? (
                                                 <span className="text-yellow-400 font-medium">
-                                                    ∞ Unlimited
+                                                    Unlimited
                                                 </span>
                                             ) : (
                                                 <>
@@ -317,7 +317,7 @@ export default function AdminUsersPage() {
                                         <span className="text-gray-500">Quota: </span>
                                         {user.role === "ADMIN" || user.rtmpQuota === -1 ? (
                                             <span className="text-yellow-400 font-medium">
-                                                ∞ Unlimited
+                                                Unlimited
                                             </span>
                                         ) : (
                                             <span className="text-white font-medium">

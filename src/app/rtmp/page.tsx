@@ -119,7 +119,7 @@ export default function RtmpPage() {
                                 <p className="text-xs text-gray-500">Quota Used</p>
                                 <p className="text-xl font-bold text-white">
                                     {isUnlimited ? (
-                                        <span className="text-yellow-400">∞ Unlimited</span>
+                                        <span className="text-yellow-400">Unlimited</span>
                                     ) : (
                                         `${streams.length}/${user?.rtmpQuota || 0}`
                                     )}
