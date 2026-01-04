@@ -1,63 +1,33 @@
 # ngelive
 
-<div align="center">
-
-**RTMP Live Stream Manager with Video Playlist**
-
-*by [Stegripe Development](https://stegripe.org)*
-
-</div>
+**Production-Ready RTMP Live Stream Manager**
 
 ---
 
-## Features
+## 🚀 Deploy (Docker Compose)
 
-- 🎥 **RTMP Stream Management** - Create and manage multiple RTMP streams
-- 📹 **Video Playlist** - Upload videos and create playlists for each stream
-- 🔄 **Loop & Shuffle** - Automatically loop and shuffle video playlists
-
-# ngelive
-
-**Production Deployment Guide**
-
----
-
-## 1. Manual VPS (Recommended)
-
-1. Install dependencies:
-   - Node.js 20+, pnpm 10+, FFmpeg, MariaDB/MySQL
-2. Clone & setup:
+1. Copy & edit `.env` dari `.env.example` sesuai kebutuhan.
+2. Jalankan:
    ```bash
-   git clone https://github.com/stegripe/ngelive.git
-   cd ngelive
-   pnpm install --frozen-lockfile
-   cp .env.example .env # Edit .env for your DB & secrets
-   pnpm db:generate && pnpm db:push && pnpm db:seed
-   pnpm build
-   pnpm start
-   # Or use PM2 for process management
+   docker compose up -d --build
+   docker compose exec app pnpm db:push
+   docker compose exec app pnpm db:seed
    ```
+3. Akses: http://localhost:3000 (atau IP server)
 
 ---
 
-## 2. Docker (All-in-One)
-
-1. Edit `.env` for production values.
-2. Start with Docker Compose:
-   ```bash
-   docker compose up -d
-   # or build image only:
-   # docker build -t ngelive .
-   # docker run -d --name ngelive -p 3000:3000 --env-file .env ngelive
-   ```
+## ⚙️ Konfigurasi Penting (.env)
+- Semua variabel sudah ada di `.env.example` (DB, JWT, admin, upload, dsb)
+- **Ganti JWT_SECRET & password admin sebelum production!**
 
 ---
 
-- Access: http://your-server:3000
-- Default admin: admin@stegripe.org / admin123 (change after deploy!)
-- For troubleshooting: ensure DB & FFmpeg are running, check .env values.
+## 🛠️ Troubleshooting
+- Login gagal? Pastikan DB sudah up, migrasi & seed otomatis saat build.
+- Ulang setup: `docker compose down -v && docker compose up -d --build`
+- Cek log: `docker compose logs -f`
 
 ---
 
 MIT License | Stegripe Development
-

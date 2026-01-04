@@ -1,9 +1,11 @@
-# Base image
-FROM node:20-alpine AS base
+# Base image (Debian for Prisma compatibility)
+FROM node:20-bullseye-slim AS base
 WORKDIR /app
 
-# Install FFmpeg
-RUN apk add --no-cache ffmpeg
+# Install FFmpeg and OpenSSL (libssl1.1)
+RUN apt-get update \
+	&& apt-get install -y ffmpeg openssl \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Enable corepack and install pnpm with specific version
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
@@ -17,8 +19,7 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS builder
 COPY . .
 ENV STANDALONE=true
-RUN pnpm db:generate
-RUN pnpm build
+RUN pnpm db:generate && pnpm build
 
 # --- Runner / Production image ---
 FROM base AS runner
