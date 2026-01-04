@@ -6,8 +6,15 @@ export interface AuthenticatedRequest extends NextRequest {
 }
 
 export function getAuthUser(request: NextRequest): JwtPayload | null {
+    // First try to get token from Authorization header
     const authHeader = request.headers.get("authorization");
-    const token = authHeader?.split(" ")[1];
+    let token = authHeader?.split(" ")[1];
+
+    // If no token in header, try to get from query parameter (for SSE connections)
+    if (!token) {
+        const url = new URL(request.url);
+        token = url.searchParams.get("token") ?? undefined;
+    }
 
     if (!token) {
         return null;

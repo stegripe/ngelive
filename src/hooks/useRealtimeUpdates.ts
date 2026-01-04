@@ -46,8 +46,8 @@ export function useRealtimeUpdates() {
             return;
         }
 
-        // Create EventSource with authorization header via query param
-        // Note: SSE doesn't support custom headers, so we use the cookie/session from the browser
+        // Create EventSource with token passed via query parameter
+        // Note: SSE doesn't support custom headers, so we pass the token as a query parameter
         const eventSource = new EventSource(`/api/events?token=${encodeURIComponent(token)}`);
         eventSourceRef.current = eventSource;
 

@@ -148,8 +148,6 @@ const buildFFmpegArgs = (inputFile: string, rtmpUrl: string): string[] => {
     return [
         // Input options
         "-re", // Real-time mode
-        "-stream_loop",
-        "-1", // Loop input (handled internally by ffmpeg)
         "-i",
         inputFile,
 
@@ -230,8 +228,6 @@ const buildFFmpegArgs = (inputFile: string, rtmpUrl: string): string[] => {
 const buildFFmpegArgsCopyMode = (inputFile: string, rtmpUrl: string): string[] => {
     return [
         "-re",
-        "-stream_loop",
-        "-1",
         "-i",
         inputFile,
         "-c",
