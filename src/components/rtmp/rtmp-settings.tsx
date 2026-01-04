@@ -57,7 +57,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
     const [searchTerm, setSearchTerm] = useState("");
     const [streamVideos, setStreamVideos] = useState<StreamVideo[]>([]);
 
-    // Stream info form
     const [streamInfo, setStreamInfo] = useState<{
         name: string;
         rtmpUrl: string;
@@ -69,7 +68,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
         playlistMode: "LOOP",
     });
 
-    // React Query hooks
     const { data: availableVideos = [] } = useVideos();
     const updateStreamMutation = useUpdateStream();
     const addVideoMutation = useAddVideoToStream();
@@ -88,7 +86,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
     }, [isOpen, stream]);
 
     const handleClose = () => {
-        // Clear any stream-related toasts when closing modal
         toastManager.clear();
         onClose();
     };
@@ -124,7 +121,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
 
         [newVideos[index], newVideos[targetIndex]] = [newVideos[targetIndex], newVideos[index]];
 
-        // Update local state optimistically
         setStreamVideos(newVideos);
 
         reorderVideosMutation.mutate({

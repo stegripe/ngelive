@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { type EventType } from "@/lib/event-emitter";
 
-// Add "connected" type for SSE connection events (client-side only)
 type ClientEventType = EventType | "connected";
 
 interface ClientAppEvent {
@@ -26,12 +25,10 @@ export function useRealtimeUpdates() {
         }
 
         const connect = () => {
-            // Close existing connection
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
             }
 
-            // Create new EventSource connection
             const eventSource = new EventSource(`/api/events?token=${encodeURIComponent(token)}`);
             eventSourceRef.current = eventSource;
 
@@ -39,7 +36,6 @@ export function useRealtimeUpdates() {
                 try {
                     const data: ClientAppEvent = JSON.parse(event.data);
 
-                    // Handle different event types by invalidating relevant queries
                     switch (data.type) {
                         case "connected":
                             console.info("Real-time connection established");
@@ -69,7 +65,6 @@ export function useRealtimeUpdates() {
                             break;
 
                         default:
-                            // Handle any unknown events
                             break;
                     }
                 } catch {
@@ -81,7 +76,6 @@ export function useRealtimeUpdates() {
                 eventSource.close();
                 eventSourceRef.current = null;
 
-                // Reconnect after 5 seconds
                 reconnectTimeoutRef.current = globalThis.setTimeout(() => {
                     connect();
                 }, 5000);

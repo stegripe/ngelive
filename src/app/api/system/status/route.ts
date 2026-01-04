@@ -3,10 +3,8 @@ import { getAuthUser, requireAdmin, requireAuth } from "@/lib/auth";
 import { getSystemStatus, setQualityPreset } from "@/lib/ffmpeg";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
-// GET /api/system/status - Get system status (All authenticated users)
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -32,7 +30,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// PUT /api/system/status - Update system settings (Admin only)
 export async function PUT(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);

@@ -4,14 +4,12 @@ import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// PUT /api/rtmp/[id]/reorder - Reorder videos in stream
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -43,7 +41,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             return sendError("Cannot modify playlist while stream is active", 400);
         }
 
-        // Update orders in transaction
         interface VideoOrder {
             id: string;
             order: number;
@@ -57,7 +54,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             ),
         );
 
-        // Log reorder
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -66,7 +62,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("video:reordered", { streamId: id });
 
         return sendSuccess(null, "Video order updated successfully");

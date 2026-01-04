@@ -3,12 +3,9 @@ import { type NextRequest } from "next/server";
 import eventEmitter, { type AppEvent } from "@/lib/event-emitter";
 import { verifyToken } from "@/lib/jwt";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
-// SSE endpoint for real-time updates
 export function GET(request: NextRequest) {
-    // Get token from query params (EventSource doesn't support custom headers)
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 
@@ -26,11 +23,9 @@ export function GET(request: NextRequest) {
 
     const stream = new ReadableStream({
         start(controller) {
-            // Send initial connection message
             const connectMessage = `data: ${JSON.stringify({ type: "connected", timestamp: Date.now() })}\n\n`;
             controller.enqueue(encoder.encode(connectMessage));
 
-            // Subscribe to events
             const unsubscribe = eventEmitter.subscribe((event: AppEvent) => {
                 try {
                     const message = `data: ${JSON.stringify(event)}\n\n`;
@@ -40,7 +35,6 @@ export function GET(request: NextRequest) {
                 }
             });
 
-            // Send keepalive every 30 seconds
             const keepaliveInterval = setInterval(() => {
                 try {
                     const keepalive = `: keepalive ${Date.now()}\n\n`;
@@ -50,7 +44,6 @@ export function GET(request: NextRequest) {
                 }
             }, 30000);
 
-            // Handle client disconnect
             request.signal.addEventListener("abort", () => {
                 unsubscribe();
                 clearInterval(keepaliveInterval);

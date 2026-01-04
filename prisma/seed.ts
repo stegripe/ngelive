@@ -4,9 +4,8 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-    // Create admin user
     const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || "admin123", 10);
-    
+
     await prisma.user.upsert({
         where: { email: process.env.ADMIN_EMAIL || "admin@stegripe.org" },
         update: {},
@@ -15,13 +14,12 @@ async function main() {
             username: "admin",
             password: adminPassword,
             role: "ADMIN",
-            rtmpQuota: -1, // -1 means unlimited for admin
+            rtmpQuota: -1,
         },
     });
 
-    // Create sample user
     const userPassword = await bcrypt.hash("user123", 10);
-    
+
     await prisma.user.upsert({
         where: { email: "user@stegripe.org" },
         update: {},
@@ -30,7 +28,7 @@ async function main() {
             username: "user",
             password: userPassword,
             role: "USER",
-            rtmpQuota: 2, // Default quota for regular users
+            rtmpQuota: 2,
         },
     });
 

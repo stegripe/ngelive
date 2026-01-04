@@ -23,7 +23,6 @@ export function startVideoMonitor(intervalMs = 30_000) {
                     continue;
                 }
                 if (!fs.existsSync(v.path)) {
-                    // Remove video and related stream entries
                     try {
                         await prisma.streamVideo.deleteMany({ where: { videoId: v.id } });
                         await prisma.video.delete({ where: { id: v.id } });
@@ -48,7 +47,6 @@ export function startVideoMonitor(intervalMs = 30_000) {
         }
     };
 
-    // Run immediately and then periodically
     checkOnce();
     setInterval(checkOnce, intervalMs);
 }

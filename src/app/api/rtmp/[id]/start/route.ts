@@ -6,14 +6,12 @@ import { startFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// POST /api/rtmp/[id]/start - Start streaming
 export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -52,7 +50,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Stream is already running", 400);
         }
 
-        // AUTO-ACTIVATE STREAM IF NOT ACTIVE
         if (!stream.isActive) {
             await prisma.rtmpStream.update({
                 where: { id },
@@ -65,21 +62,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("No videos assigned to this stream", 400);
         }
 
-        // Check all video files exist
         for (const sv of stream.streamVideos) {
             if (!sv.video.path || !fs.existsSync(sv.video.path)) {
                 return sendError(`Video file not found: ${sv.video.path}`, 400);
             }
         }
 
-        // Start FFmpeg process
         const success = await startFFmpegStream(stream);
 
         if (!success) {
             return sendError("Failed to start stream: FFmpeg error", 500);
         }
 
-        // Update stream status
         await prisma.rtmpStream.update({
             where: { id },
             data: {
@@ -88,7 +82,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Log start
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -97,7 +90,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("stream:started", { streamId: id });
 
         return sendSuccess({ message: "Stream started successfully" }, "Stream started");

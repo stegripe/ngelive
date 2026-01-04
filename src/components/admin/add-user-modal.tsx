@@ -26,7 +26,6 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Set quota to -1 for admin users
         const submitData = {
             ...formData,
             rtmpQuota: formData.role === "ADMIN" ? -1 : formData.rtmpQuota,
@@ -50,7 +49,6 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
 
-        // Handle role change
         if (name === "role") {
             setFormData((prev) => ({
                 ...prev,

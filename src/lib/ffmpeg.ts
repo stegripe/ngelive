@@ -5,14 +5,8 @@ import { clearTimeout, setTimeout } from "node:timers";
 import prisma from "./prisma";
 import { startVideoMonitor } from "./video-monitor";
 
-// Toggle verbose per-video logging. Set env FFMPEG_VERBOSE=true to enable.
 const FFMPEG_VERBOSE = nodeProcess.env.FFMPEG_VERBOSE === "true";
 
-// ============================================================================
-// FFmpeg Service - Optimized for Low-Spec Servers (1 vCPU / 1GB RAM)
-// ============================================================================
-
-// Store running FFmpeg processes with metadata
 interface StreamProcess {
     process: ChildProcess;
     startTime: Date;
@@ -24,7 +18,6 @@ interface StreamProcess {
 
 const runningStreams: Map<string, StreamProcess> = new Map();
 
-// Quality preset types
 interface QualityPreset {
     resolution: string;
     videoBitrate: string;
@@ -39,9 +32,7 @@ interface QualityPreset {
 
 type QualityLevel = "ultralow" | "low" | "medium" | "high";
 
-// Quality presets
 const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
-    // Ultra-low spec: 1 vCPU, 512MB RAM
     ultralow: {
         resolution: "854x480",
         videoBitrate: "800k",
@@ -53,7 +44,6 @@ const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
         threads: 1,
         crf: "28",
     },
-    // Low spec: 1 vCPU, 1GB RAM (DEFAULT)
     low: {
         resolution: "1280x720",
         videoBitrate: "1500k",
@@ -65,7 +55,6 @@ const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
         threads: 1,
         crf: "25",
     },
-    // Medium spec: 2 vCPU, 2GB RAM
     medium: {
         resolution: "1280x720",
         videoBitrate: "2500k",
@@ -77,7 +66,6 @@ const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
         threads: 2,
         crf: "23",
     },
-    // High spec: 4+ vCPU, 4GB+ RAM
     high: {
         resolution: "1920x1080",
         videoBitrate: "4500k",
@@ -91,23 +79,17 @@ const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
     },
 };
 
-// Configuration - Optimized for 1 vCPU / 1GB RAM
 const CONFIG = {
-    // Maximum concurrent streams (adjust based on server capacity)
     MAX_CONCURRENT_STREAMS: 2,
 
-    // FFmpeg process limits
     MAX_RETRY_COUNT: 3,
     RETRY_DELAY_MS: 5000,
 
-    // Memory management
-    FFMPEG_NICE_PRIORITY: 10, // Lower priority (higher nice value)
+    FFMPEG_NICE_PRIORITY: 10,
 
-    // Current quality setting - change based on server specs
     CURRENT_QUALITY: "low" as QualityLevel,
 };
 
-// Get current quality preset
 const getQualityPreset = (): QualityPreset => QUALITY_PRESETS[CONFIG.CURRENT_QUALITY];
 
 export interface FFmpegStream {
@@ -122,7 +104,6 @@ export interface FFmpegStreamVideo {
     video: { path: string; filename: string };
 }
 
-// Check if FFmpeg is available
 const checkFFmpegAvailable = (): boolean => {
     try {
         execSync("ffmpeg -version", { stdio: "ignore" });
@@ -132,17 +113,15 @@ const checkFFmpegAvailable = (): boolean => {
     }
 };
 
-// Get system memory info (simplified)
 const getAvailableMemoryMB = (): number => {
     try {
         const freeBytes = os.freemem();
         return Math.floor(freeBytes / 1024 / 1024);
     } catch {
-        return 512; // Default assumption
+        return 512;
     }
 };
 
-// Build optimized FFmpeg arguments
 const buildFFmpegArgs = (
     inputFile: string,
     rtmpUrl: string,
@@ -152,28 +131,25 @@ const buildFFmpegArgs = (
     const [width, height] = preset.resolution.split("x");
 
     return [
-        // Input options
-        "-re", // Real-time mode
+        "-re",
         "-i",
         inputFile,
 
-        // Video filters - scale with hardware acceleration fallback
         "-vf",
         `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p`,
 
-        // Video codec settings - OPTIMIZED for low CPU
         "-c:v",
         "libx264",
         "-preset",
-        preset.preset, // ultrafast/superfast for low CPU
+        preset.preset,
         "-tune",
-        "zerolatency", // Minimize latency
+        "zerolatency",
         "-profile:v",
-        "baseline", // Baseline for compatibility & lower CPU
+        "baseline",
         "-level",
-        "3.1", // Compatible level
+        "3.1",
         "-crf",
-        preset.crf, // Quality-based encoding
+        preset.crf,
         "-b:v",
         preset.videoBitrate,
         "-maxrate",
@@ -181,21 +157,18 @@ const buildFFmpegArgs = (
         "-bufsize",
         preset.bufsize,
 
-        // Keyframe settings - longer GOP for efficiency
         "-g",
-        "120", // Keyframe every 4 seconds at 30fps
+        "120",
         "-keyint_min",
         "60",
         "-sc_threshold",
-        "0", // Disable scene change detection
+        "0",
 
-        // Frame rate control
         "-r",
-        "30", // Lock to 30fps
+        "30",
         "-fps_mode",
-        "cfr", // Constant frame rate
+        "cfr",
 
-        // Audio settings - OPTIMIZED
         "-c:a",
         "aac",
         "-b:a",
@@ -203,25 +176,22 @@ const buildFFmpegArgs = (
         "-ar",
         preset.audioSampleRate,
         "-ac",
-        "2", // Stereo
+        "2",
 
-        // Threading - controlled
         "-threads",
         String(preset.threads),
         "-thread_type",
-        "slice", // Slice-based threading (less memory)
+        "slice",
 
-        // Buffer and stability settings
         "-max_muxing_queue_size",
-        "512", // Reduced from 1024
+        "512",
         "-fflags",
-        "+genpts+igndts", // Generate PTS, ignore DTS issues
+        "+genpts+igndts",
         "-avoid_negative_ts",
         "make_zero",
 
-        // RTMP output settings
         "-rtmp_buffer",
-        "2048", // Reduced buffer
+        "2048",
         "-rtmp_live",
         "live",
         "-f",
@@ -230,14 +200,13 @@ const buildFFmpegArgs = (
     ];
 };
 
-// Build minimal FFmpeg args for copy mode (if source already encoded)
 const buildFFmpegArgsCopyMode = (inputFile: string, rtmpUrl: string): string[] => {
     return [
         "-re",
         "-i",
         inputFile,
         "-c",
-        "copy", // Copy without re-encoding (0 CPU!)
+        "copy",
         "-f",
         "flv",
         "-flvflags",
@@ -246,33 +215,27 @@ const buildFFmpegArgsCopyMode = (inputFile: string, rtmpUrl: string): string[] =
     ];
 };
 
-// Check if video is compatible for copy mode
 const canUseCopyMode = (videoPath: string): boolean => {
     try {
-        // Check if video is already H.264 + AAC in compatible format
         const output = execSync(
             `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of csv=p=0 "${videoPath}"`,
             { encoding: "utf-8" },
         );
         const [codec, width] = output.trim().split(",");
 
-        // Only use copy mode if already h264 and reasonable resolution
         return codec === "h264" && Number.parseInt(width, 10) <= 1920;
     } catch {
         return false;
     }
 };
 
-// Start FFmpeg stream with optimizations
 export const startFFmpegStream = (stream: FFmpegStream): boolean => {
     try {
-        // Check if already running
         if (runningStreams.has(stream.id)) {
             console.info(`[FFmpeg] Stream ${stream.id} is already running`);
             return false;
         }
 
-        // Check concurrent stream limit
         if (runningStreams.size >= CONFIG.MAX_CONCURRENT_STREAMS) {
             console.warn(
                 `[FFmpeg] Maximum concurrent streams reached (${CONFIG.MAX_CONCURRENT_STREAMS})`,
@@ -280,13 +243,11 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             return false;
         }
 
-        // Check FFmpeg availability
         if (!checkFFmpegAvailable()) {
             console.error("[FFmpeg] FFmpeg is not installed or not in PATH");
             return false;
         }
 
-        // Check available memory
         const availableMem = getAvailableMemoryMB();
         if (availableMem < 256) {
             console.warn(`[FFmpeg] Low memory warning: ${availableMem}MB available`);
@@ -307,13 +268,11 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
         const shuffleMode =
             stream.playlistMode === "SHUFFLE" || stream.playlistMode === "SHUFFLE_LOOP";
 
-        // Determine quality for this stream (persisted per-stream if available)
         const qualityLevel = (stream as any).quality || CONFIG.CURRENT_QUALITY;
         const getPreset = (level: string) =>
             (QUALITY_PRESETS as Record<string, QualityPreset>)[level] ||
             QUALITY_PRESETS[CONFIG.CURRENT_QUALITY];
 
-        // Shuffle videos if needed
         if (shuffleMode) {
             for (let i = videoFiles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -321,7 +280,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             }
         }
 
-        // Main streaming loop
         const runLoop = async () => {
             let stopRequested = false;
             let retryCount = 0;
@@ -334,7 +292,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
 
                     const currentVideo = videoFiles[videoIndex];
 
-                    // Update current video in database
                     try {
                         await prisma.rtmpStream.update({
                             where: { id: stream.id },
@@ -344,7 +301,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                         console.error(`[FFmpeg] Failed to update current video:`, e);
                     }
 
-                    // Check if copy mode can be used (saves CPU!)
                     const useCopyMode = await canUseCopyMode(currentVideo.path);
 
                     const preset = getPreset(qualityLevel);
@@ -352,17 +308,13 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                         ? buildFFmpegArgsCopyMode(currentVideo.path, stream.rtmpUrl)
                         : buildFFmpegArgs(currentVideo.path, stream.rtmpUrl, preset);
 
-                    // Throttle logs: always log when encoding (non-copy), otherwise log only every 5 copy-mode videos
                     const existingInfo = runningStreams.get(stream.id);
                     const videosStartedCount = (existingInfo?.videosStartedCount || 0) + 1;
 
-                    // Spawn FFmpeg with low priority
                     const ffmpeg = spawn("ffmpeg", ffmpegArgs, {
                         stdio: ["ignore", "pipe", "pipe"],
-                        // On Windows, can't set nice directly
                     });
 
-                    // Store process info
                     runningStreams.set(stream.id, {
                         process: ffmpeg,
                         startTime: new Date(),
@@ -379,17 +331,14 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                         );
                     }
 
-                    // Handle stdout (usually empty for FFmpeg)
                     ffmpeg.stdout?.on("data", (_data) => {
                         // Minimal logging to reduce overhead
                     });
 
-                    // Handle stderr (FFmpeg logs here)
                     let lastProgress = "";
                     ffmpeg.stderr?.on("data", (data) => {
                         const output = data.toString();
 
-                        // Only log errors and important info
                         if (output.includes("Error") || output.includes("error")) {
                             console.error(`[FFmpeg ${stream.id}] ${output.trim()}`);
                             const streamInfo = runningStreams.get(stream.id);
@@ -398,18 +347,15 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                             }
                         }
 
-                        // Log progress occasionally
                         if (output.includes("frame=") && output !== lastProgress) {
                             lastProgress = output;
                             // Uncomment for debug: console.debug(`[FFmpeg ${stream.id}] ${output.trim()}`);
                         }
                     });
 
-                    // Wait for process to complete
                     const exitCode = await new Promise<number | null>((resolve) => {
                         ffmpeg.on("close", (code) => {
                             const info = runningStreams.get(stream.id);
-                            // Only log non-zero exits, or encoding (non-copy) video completions.
                             if (code !== 0 && code !== null) {
                                 console.error(
                                     `[FFmpeg] Stream ${stream.id} video exited with code ${code}`,
@@ -419,7 +365,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                                     `[FFmpeg] Stream ${stream.id} video ended with code ${code}`,
                                 );
                             } else if (info && (info.videosStartedCount || 0) % 5 === 0) {
-                                // Periodic log for copy-mode videos to show progress
                                 console.info(
                                     `[FFmpeg] Stream ${stream.id} progressed (copy-mode) - video #${info.videosStartedCount}`,
                                 );
@@ -433,13 +378,11 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                         });
                     });
 
-                    // Check if manually stopped
                     if (!runningStreams.has(stream.id)) {
                         stopRequested = true;
                         break;
                     }
 
-                    // Handle exit codes
                     if (exitCode !== 0 && exitCode !== null) {
                         retryCount++;
                         const streamInfo = runningStreams.get(stream.id);
@@ -450,7 +393,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                             );
                             stopRequested = true;
 
-                            // Log error to database
                             await prisma.streamLog.create({
                                 data: {
                                     streamId: stream.id,
@@ -466,16 +408,14 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                         );
                         await new Promise((r) => setTimeout(r, CONFIG.RETRY_DELAY_MS));
                     } else {
-                        retryCount = 0; // Reset on success
+                        retryCount = 0;
                     }
 
-                    // Small delay between videos to prevent CPU spike
                     if (!stopRequested && videoIndex < videoFiles.length - 1) {
                         await new Promise((r) => setTimeout(r, 1000));
                     }
                 }
 
-                // Shuffle again for next loop iteration
                 if (shuffleMode && loopForever && !stopRequested) {
                     for (let i = videoFiles.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
@@ -484,10 +424,8 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
                 }
             } while (loopForever && !stopRequested);
 
-            // Cleanup
             runningStreams.delete(stream.id);
 
-            // Update database
             try {
                 await prisma.rtmpStream.update({
                     where: { id: stream.id },
@@ -509,8 +447,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             }
         };
 
-        // Start the loop (non-blocking)
-        // Start background monitors once
         try {
             startVideoMonitor();
         } catch (e) {
@@ -529,20 +465,16 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
     }
 };
 
-// Stop FFmpeg stream gracefully
 export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     const streamInfo = runningStreams.get(streamId);
 
     if (streamInfo) {
         const { process: ffmpeg } = streamInfo;
 
-        // First try graceful quit
         ffmpeg.stdin?.write("q");
 
-        // Give it 3 seconds to quit gracefully
         await new Promise<void>((resolve) => {
             const timeout = setTimeout(() => {
-                // Force kill if still running
                 if (!ffmpeg.killed) {
                     console.warn(`[FFmpeg] Force killing stream ${streamId}`);
                     ffmpeg.kill("SIGKILL");
@@ -561,33 +493,27 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     }
 };
 
-// Get list of running stream IDs
 export const getRunningStreams = (): string[] => {
     return Array.from(runningStreams.keys());
 };
 
-// Get detailed info about running streams
 export const getStreamInfo = (streamId: string): StreamProcess | undefined => {
     return runningStreams.get(streamId);
 };
 
-// Get all streams info
 export const getAllStreamsInfo = (): Map<string, StreamProcess> => {
     return runningStreams;
 };
 
-// Update quality preset at runtime
 export const setQualityPreset = (preset: QualityLevel): void => {
     CONFIG.CURRENT_QUALITY = preset;
     console.info(`[FFmpeg] Quality preset changed to: ${preset}`);
 };
 
-// Get current quality preset name
 export const getCurrentQuality = (): string => {
     return CONFIG.CURRENT_QUALITY;
 };
 
-// Stop all streams (for cleanup)
 export const stopAllStreams = async (): Promise<void> => {
     const streamIds = Array.from(runningStreams.keys());
     console.info(`[FFmpeg] Stopping all streams (${streamIds.length} active)`);
@@ -595,7 +521,6 @@ export const stopAllStreams = async (): Promise<void> => {
     await Promise.all(streamIds.map((id) => stopFFmpegStream(id)));
 };
 
-// Check system resources
 export const getSystemStatus = () => {
     return {
         activeStreams: runningStreams.size,

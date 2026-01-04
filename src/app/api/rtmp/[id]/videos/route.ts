@@ -4,14 +4,12 @@ import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// GET /api/rtmp/[id]/videos - Get videos in stream
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -60,7 +58,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// POST /api/rtmp/[id]/videos - Add video to stream
 export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -92,7 +89,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Cannot modify playlist while stream is active", 400);
         }
 
-        // Verify video exists and is accessible
         const videoWhere =
             authUser!.role === "ADMIN"
                 ? { id: videoId }
@@ -107,7 +103,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Video not found or not accessible", 404);
         }
 
-        // Check if video already in stream
         const existingStreamVideo = await prisma.streamVideo.findFirst({
             where: { streamId: id, videoId },
         });
@@ -116,14 +111,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Video already in stream", 400);
         }
 
-        // Get the current max order
         const maxOrder = await prisma.streamVideo.findFirst({
             where: { streamId: id },
             orderBy: { order: "desc" },
             select: { order: true },
         });
 
-        // Create stream video
         const streamVideo = await prisma.streamVideo.create({
             data: {
                 streamId: id,
@@ -149,7 +142,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Log addition
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -158,7 +150,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("video:added_to_stream", { streamId: id, streamVideo });
 
         return sendSuccess({ streamVideo }, "Video added to stream successfully", 201);
@@ -168,7 +159,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// PUT /api/rtmp/[id]/videos - Assign videos to stream (replace all)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -200,7 +190,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             return sendError("Cannot modify playlist while stream is active", 400);
         }
 
-        // Verify all videos exist and belong to user (if not admin)
         const videoWhere =
             authUser!.role === "ADMIN"
                 ? { id: { in: videoIds } }
@@ -215,12 +204,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             return sendError("Some videos not found or not accessible", 404);
         }
 
-        // Remove existing assignments
         await prisma.streamVideo.deleteMany({
             where: { streamId: id },
         });
 
-        // Create new assignments
         const streamVideos = videoIds.map((vid: string, index: number) => ({
             streamId: id,
             videoId: vid,
@@ -231,7 +218,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             data: streamVideos,
         });
 
-        // Log assignment
         await prisma.streamLog.create({
             data: {
                 streamId: id,

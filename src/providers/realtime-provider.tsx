@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/auth-context";
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
 
-    // Only connect to real-time updates when user is authenticated
     if (user) {
         return <RealtimeConnector>{children}</RealtimeConnector>;
     }

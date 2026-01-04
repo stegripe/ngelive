@@ -5,14 +5,12 @@ import { stopFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// POST /api/rtmp/[id]/stop - Stop streaming
 export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -37,10 +35,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Stream is not running", 400);
         }
 
-        // Stop FFmpeg process
         await stopFFmpegStream(id);
 
-        // Update stream status
         await prisma.rtmpStream.update({
             where: { id },
             data: {
@@ -49,7 +45,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Log stop
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -58,7 +53,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("stream:stopped", { streamId: id });
 
         return sendSuccess({ message: "Stream stopped successfully" }, "Stream stopped");

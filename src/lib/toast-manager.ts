@@ -2,7 +2,7 @@ import { toast } from "sonner";
 
 class ToastManager {
     private activeToasts = new Set<string>();
-    private toastTimeout = 100; // 100ms delay to prevent duplicates
+    private toastTimeout = 100;
 
     public success(message: string, id?: string) {
         const toastId = id || `success-${Date.now()}`;

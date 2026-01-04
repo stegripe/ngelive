@@ -19,7 +19,7 @@ export function useSystemStatus() {
             const response = await api.get("/system/status");
             return response.data.data.status as SystemStatus;
         },
-        refetchInterval: 30000, // Refetch every 30 seconds
-        staleTime: 25000, // Consider data fresh for 25 seconds
+        refetchInterval: 30000,
+        staleTime: 25000,
     });
 }

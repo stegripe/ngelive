@@ -4,14 +4,12 @@ import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// GET /api/rtmp/[id] - Get RTMP stream by ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -75,7 +73,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// PUT /api/rtmp/[id] - Update RTMP stream
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -142,7 +139,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Log update
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -151,7 +147,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("stream:updated", { stream: updatedStream });
 
         return sendSuccess({ stream: updatedStream }, "RTMP stream updated successfully");
@@ -161,7 +156,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// DELETE /api/rtmp/[id] - Delete RTMP stream
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -190,7 +184,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             where: { id },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("stream:deleted", { streamId: id });
 
         return sendSuccess({ deletedStream: stream }, "RTMP stream deleted successfully");

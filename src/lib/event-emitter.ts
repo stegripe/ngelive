@@ -1,6 +1,5 @@
 import nodeProcess from "node:process";
 
-// Event types for real-time updates
 export type EventType =
     | "stream:created"
     | "stream:updated"
@@ -55,7 +54,6 @@ class EventEmitter {
     }
 }
 
-// Singleton instance
 const globalForEvents = globalThis as unknown as {
     eventEmitter: EventEmitter | undefined;
 };

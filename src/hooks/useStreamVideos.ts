@@ -11,10 +11,8 @@ export const useAddVideoToStream = () => {
             return response.data;
         },
         onMutate: async ({ streamId, videoId }) => {
-            // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ["streams"] });
 
-            // Snapshot the previous value
             const previousStreams = queryClient.getQueryData(["streams"]);
 
             return { previousStreams, streamId, videoId };
@@ -23,10 +21,8 @@ export const useAddVideoToStream = () => {
             const { streamId, videoId } = variables;
             const errorId = `add-video-error-${streamId}-${videoId}`;
 
-            // Clear any existing success toast
             toastManager.dismiss(`add-video-success-${streamId}-${videoId}`);
 
-            // Show error toast
             type ErrorWithResponse = {
                 response?: {
                     data?: {
@@ -49,13 +45,10 @@ export const useAddVideoToStream = () => {
             const { streamId, videoId } = variables;
             const successId = `add-video-success-${streamId}-${videoId}`;
 
-            // Clear any existing error toast
             toastManager.dismiss(`add-video-error-${streamId}-${videoId}`);
 
-            // Show success toast
             toastManager.success("Video added to stream!", successId);
 
-            // Invalidate queries
             queryClient.invalidateQueries({ queryKey: ["streams"] });
         },
     });

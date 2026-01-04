@@ -9,7 +9,6 @@ interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// GET /api/users/[id] - Get user by ID (Admin only)
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -64,7 +63,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// PUT /api/users/[id] - Update user (Admin only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -95,7 +93,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             password?: string;
         } = {};
 
-        // Check username
         if (username && username !== user.username) {
             const existingUser = await prisma.user.findFirst({
                 where: {
@@ -109,7 +106,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             updateData.username = username;
         }
 
-        // Check email
         if (email && email !== user.email) {
             if (!validateEmail(email)) {
                 return sendError("Invalid email format", 400);
@@ -169,7 +165,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// DELETE /api/users/[id] - Delete user (Admin only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);

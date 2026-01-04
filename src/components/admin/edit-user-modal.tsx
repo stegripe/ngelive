@@ -58,7 +58,6 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
             return;
         }
 
-        // Validate password if changing
         if (showPasswordSection) {
             if (passwordData.newPassword !== passwordData.confirmPassword) {
                 setPasswordError("Passwords do not match");
@@ -98,22 +97,20 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
             newValue = Number.parseInt(value, 10);
         }
 
-        // Handle role change: set quota to -1 for admin, or 2 for user (if currently -1)
         if (name === "role") {
             if (value === "ADMIN") {
                 setFormData((prev) => ({
                     ...prev,
                     role: value,
-                    rtmpQuota: -1, // Unlimited for admin
+                    rtmpQuota: -1,
                 }));
                 return;
             }
-            // Demoting to USER - set default quota if currently unlimited
             if (value === "USER" && formData.rtmpQuota === -1) {
                 setFormData((prev) => ({
                     ...prev,
                     role: value,
-                    rtmpQuota: 2, // Default quota for users
+                    rtmpQuota: 1,
                 }));
                 return;
             }

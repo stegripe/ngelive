@@ -13,7 +13,6 @@ import { useStreams } from "@/hooks/useStreams";
 import { useAuth } from "@/lib/auth-context";
 import { type RtmpStream } from "@/types";
 
-// Use RtmpStream instead of defining a local Stream interface
 type Stream = RtmpStream;
 
 export default function RtmpPage() {

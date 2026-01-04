@@ -49,7 +49,6 @@ export default function AdminPage() {
     const [statusLoading, setStatusLoading] = useState(false);
     const [changingQuality, setChangingQuality] = useState(false);
 
-    // React Query hooks
     const { data: users = [], isLoading: usersLoading } = useUsers();
     const { data: streams = [], isLoading: streamsLoading } = useStreams();
     const { data: videos = [], isLoading: videosLoading } = useVideos();

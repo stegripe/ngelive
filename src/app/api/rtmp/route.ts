@@ -6,10 +6,8 @@ import { sendError, sendSuccess } from "@/lib/response";
 import { generateStreamKey } from "@/lib/rtmp";
 import { validateRequired } from "@/lib/validation";
 
-// Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
 
-// GET /api/rtmp - List RTMP streams
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -90,7 +88,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST /api/rtmp - Create RTMP stream
 export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -107,7 +104,6 @@ export async function POST(request: NextRequest) {
             return sendError(validationErrors.join(", "), 400);
         }
 
-        // Check user's RTMP quota
         const user = await prisma.user.findUnique({
             where: { id: authUser!.userId },
             select: {
@@ -122,7 +118,6 @@ export async function POST(request: NextRequest) {
             return sendError("User not found", 404);
         }
 
-        // rtmpQuota === -1 indicates unlimited quota (e.g., admin). Only enforce when quota is non-negative.
         if (
             typeof user.rtmpQuota === "number" &&
             user.rtmpQuota >= 0 &&
@@ -156,7 +151,6 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        // Log creation
         await prisma.streamLog.create({
             data: {
                 streamId: stream.id,
@@ -165,7 +159,6 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        // Emit event for real-time updates
         eventEmitter.emit("stream:created", { stream });
 
         return sendSuccess({ stream }, "RTMP stream created successfully", 201);

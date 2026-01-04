@@ -68,7 +68,6 @@ export default function VideosPage() {
         video.originalName.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
-    // Get page title and description based on user role
     const getPageInfo = () => {
         if (user?.role === "ADMIN") {
             return {

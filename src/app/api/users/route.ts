@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail, validateRequired } from "@/lib/validation";
 
-// GET /api/users - List all users (Admin only)
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -71,7 +70,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST /api/users - Create new user (Admin only)
 export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
