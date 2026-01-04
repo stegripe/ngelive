@@ -1,3 +1,5 @@
+import nodeProcess from "node:process";
+
 // Event types for real-time updates
 export type EventType =
     | "stream:created"
@@ -60,7 +62,7 @@ const globalForEvents = globalThis as unknown as {
 
 export const eventEmitter = globalForEvents.eventEmitter ?? new EventEmitter();
 
-if (globalThis.process.env.NODE_ENV !== "production") {
+if (nodeProcess.env.NODE_ENV !== "production") {
     globalForEvents.eventEmitter = eventEmitter;
 }
 

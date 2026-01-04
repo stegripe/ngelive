@@ -2,25 +2,13 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import { type EventType } from "@/lib/event-emitter";
 
-type EventType =
-    | "connected"
-    | "stream:created"
-    | "stream:updated"
-    | "stream:deleted"
-    | "stream:started"
-    | "stream:stopped"
-    | "video:created"
-    | "video:deleted"
-    | "video:added_to_stream"
-    | "video:removed_from_stream"
-    | "video:reordered"
-    | "user:created"
-    | "user:updated"
-    | "user:deleted";
+// Add "connected" type for SSE connection events (client-side only)
+type ClientEventType = EventType | "connected";
 
-interface AppEvent {
-    type: EventType;
+interface ClientAppEvent {
+    type: ClientEventType;
     data: unknown;
     timestamp: number;
 }
@@ -49,7 +37,7 @@ export function useRealtimeUpdates() {
 
             eventSource.onmessage = (event) => {
                 try {
-                    const data: AppEvent = JSON.parse(event.data);
+                    const data: ClientAppEvent = JSON.parse(event.data);
 
                     // Handle different event types by invalidating relevant queries
                     switch (data.type) {
