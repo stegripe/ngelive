@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
+const isStandalone =
+    typeof process !== "undefined" && process.env && process.env.STANDALONE === "true";
 const nextConfig = {
-    // Only use standalone output in Docker/production
-    ...(process.env.STANDALONE === "true" && { output: "standalone" }),
+    ...(isStandalone && { output: "standalone" }),
     typescript: {
         ignoreBuildErrors: false,
     },
@@ -17,7 +18,6 @@ const nextConfig = {
             },
         ],
     },
-    // Increase body size limit for video uploads
     experimental: {
         serverActions: {
             bodySizeLimit: "2gb",
@@ -25,4 +25,4 @@ const nextConfig = {
     },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

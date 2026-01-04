@@ -2,14 +2,11 @@
     "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
     "extends": ["@stegripe/biomejs-config"],
     "files": {
-        "includes": [
-            "**",
-            "!**/node_modules/**",
-            "!**/.next/**",
-            "!**/dist/**",
-            "!**/build/**",
-            "!**/*.css"
-        ]
+        "includes": ["**"],
+        "ignore": {
+            "folders": ["node_modules", ".next", "dist", "build"],
+            "files": ["*.css"]
+        }
     },
     "linter": {
         "rules": {
