@@ -1,12 +1,12 @@
 "use client";
 
+import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
-import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -50,15 +50,14 @@ export default function LoginPage() {
                         <span className="text-white font-bold text-2xl">N</span>
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Welcome Back</h1>
-                    <p className="text-gray-400 text-sm sm:text-base">Sign in to your ngelive account</p>
+                    <p className="text-gray-400 text-sm sm:text-base">
+                        Sign in to your ngelive account
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">
-                        <label
-                            htmlFor="email"
-                            className="block text-sm font-medium text-gray-300"
-                        >
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-300">
                             Email
                         </label>
                         <div className="relative">
@@ -144,11 +143,10 @@ export default function LoginPage() {
 
                 {/* Watermark */}
                 <p className="text-center text-[10px] text-gray-600 mt-6">
-                    <span className="font-semibold text-gray-500">ngelive</span>
-                    {" "}by{" "}
-                    <a 
-                        href="https://stegripe.org" 
-                        target="_blank" 
+                    <span className="font-semibold text-gray-500">ngelive</span> by{" "}
+                    <a
+                        href="https://stegripe.org"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary-500/70 hover:text-primary-400 transition-colors"
                     >

@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuth } from "@/lib/auth-context";
-import { cn } from "@/lib/utils";
 import { Home, Monitor, Settings, Users, Video, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -30,8 +30,10 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
         <>
             {/* Mobile overlay */}
             {open && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+                <button
+                    type="button"
+                    aria-label="Close sidebar"
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden cursor-default"
                     onClick={() => setOpen(false)}
                 />
             )}
@@ -40,7 +42,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
             <aside
                 className={cn(
                     "fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64",
-                    open ? "translate-x-0" : "-translate-x-full"
+                    open ? "translate-x-0" : "-translate-x-full",
                 )}
             >
                 <div className="flex flex-col h-full">
@@ -53,6 +55,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                             <span className="text-lg font-bold text-white">ngelive</span>
                         </div>
                         <button
+                            type="button"
                             onClick={() => setOpen(false)}
                             className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
                         >
@@ -78,10 +81,12 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                                         isActive
                                             ? "bg-primary-600/20 text-primary-400 border border-primary-500/30"
-                                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                            : "text-gray-400 hover:bg-gray-800 hover:text-white",
                                     )}
                                 >
-                                    <Icon className={cn("h-5 w-5", isActive && "text-primary-400")} />
+                                    <Icon
+                                        className={cn("h-5 w-5", isActive && "text-primary-400")}
+                                    />
                                     {item.name}
                                 </Link>
                             );
@@ -95,7 +100,9 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                 </div>
                                 {adminNavigation.map((item) => {
                                     const Icon = item.icon;
-                                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                                    const isActive =
+                                        pathname === item.href ||
+                                        pathname.startsWith(`${item.href}/`);
 
                                     return (
                                         <Link
@@ -106,10 +113,15 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                                                 isActive
                                                     ? "bg-primary-600/20 text-primary-400 border border-primary-500/30"
-                                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                                    : "text-gray-400 hover:bg-gray-800 hover:text-white",
                                             )}
                                         >
-                                            <Icon className={cn("h-5 w-5", isActive && "text-primary-400")} />
+                                            <Icon
+                                                className={cn(
+                                                    "h-5 w-5",
+                                                    isActive && "text-primary-400",
+                                                )}
+                                            />
                                             {item.name}
                                         </Link>
                                     );
@@ -123,22 +135,25 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                         <div className="p-3 bg-gray-800/50 rounded-lg mb-3">
                             <div className="flex items-center gap-2 mb-2">
                                 <Zap className="h-4 w-4 text-yellow-500" />
-                                <span className="text-xs font-semibold text-gray-300">RTMP Quota</span>
+                                <span className="text-xs font-semibold text-gray-300">
+                                    RTMP Quota
+                                </span>
                             </div>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-white">{user?.rtmpQuota || 0}</span>
+                                <span className="text-2xl font-bold text-white">
+                                    {user?.rtmpQuota || 0}
+                                </span>
                                 <span className="text-xs text-gray-500">streams available</span>
                             </div>
                         </div>
-                        
+
                         {/* Watermark */}
                         <div className="text-center">
                             <p className="text-[10px] text-gray-600">
-                                <span className="font-semibold text-gray-500">ngelive</span>
-                                {" "}by{" "}
-                                <a 
-                                    href="https://stegripe.org" 
-                                    target="_blank" 
+                                <span className="font-semibold text-gray-500">ngelive</span> by{" "}
+                                <a
+                                    href="https://stegripe.org"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-primary-500/70 hover:text-primary-400 transition-colors"
                                 >

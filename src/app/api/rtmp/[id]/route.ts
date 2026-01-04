@@ -12,7 +12,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const where = authUser!.role === "ADMIN" ? { id } : { id, userId: authUser!.userId };
@@ -74,7 +76,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const body = await request.json();
@@ -102,9 +106,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             playlistMode?: "LOOP" | "ONCE" | "SHUFFLE";
         } = {};
 
-        if (name) updateData.name = name;
-        if (rtmpUrl) updateData.rtmpUrl = rtmpUrl;
-        if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+        if (name) {
+            updateData.name = name;
+        }
+        if (rtmpUrl) {
+            updateData.rtmpUrl = rtmpUrl;
+        }
+        if (isActive !== undefined) {
+            updateData.isActive = Boolean(isActive);
+        }
         if (playlistMode && ["LOOP", "ONCE", "SHUFFLE"].includes(playlistMode)) {
             updateData.playlistMode = playlistMode as "LOOP" | "ONCE" | "SHUFFLE";
         }
@@ -144,7 +154,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const where = authUser!.role === "ADMIN" ? { id } : { id, userId: authUser!.userId };

@@ -1,6 +1,6 @@
-import { api } from "@/lib/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
 
 interface Stream {
     id: string;
@@ -67,7 +67,7 @@ export const useDeleteStream = () => {
             await queryClient.cancelQueries({ queryKey: ["streams"] });
             const previousStreams = queryClient.getQueryData<Stream[]>(["streams"]);
             queryClient.setQueryData(["streams"], (old: Stream[] | undefined) =>
-                old?.filter((stream: Stream) => stream.id !== id)
+                old?.filter((stream: Stream) => stream.id !== id),
             );
             return { previousStreams };
         },

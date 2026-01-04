@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import type * as React from "react";
 import { useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 interface ModalProps {
     isOpen: boolean;
@@ -27,7 +27,7 @@ export function Modal({ isOpen, onClose, title, children, className, size = "md"
                 onClose();
             }
         };
-        
+
         document.addEventListener("keydown", handleEscape);
         return () => document.removeEventListener("keydown", handleEscape);
     }, [isOpen, onClose]);
@@ -44,7 +44,9 @@ export function Modal({ isOpen, onClose, title, children, className, size = "md"
         };
     }, [isOpen]);
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -54,13 +56,13 @@ export function Modal({ isOpen, onClose, title, children, className, size = "md"
                 onClick={onClose}
                 aria-hidden="true"
             />
-            
+
             {/* Modal */}
             <div
                 className={cn(
                     "relative bg-gray-900 rounded-xl border border-gray-800 shadow-2xl w-full animate-in zoom-in-95 fade-in duration-200",
                     sizeClasses[size],
-                    className
+                    className,
                 )}
             >
                 {/* Header */}
@@ -76,7 +78,7 @@ export function Modal({ isOpen, onClose, title, children, className, size = "md"
                         </button>
                     </div>
                 )}
-                
+
                 {/* Content */}
                 <div className="px-5 py-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
                     {children}

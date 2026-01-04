@@ -2,7 +2,10 @@ export const validateRequired = (data: Record<string, unknown>, fields: string[]
     const errors: string[] = [];
 
     for (const field of fields) {
-        if (!data[field] || (typeof data[field] === "string" && (data[field] as string).trim() === "")) {
+        if (
+            !data[field] ||
+            (typeof data[field] === "string" && (data[field] as string).trim() === "")
+        ) {
             errors.push(`${field} is required`);
         }
     }
@@ -18,12 +21,12 @@ export const validateEmail = (email: string): boolean => {
 export const validateVideoFile = (filename: string, size: number): string[] => {
     const errors: string[] = [];
     const allowedTypes = [".mp4", ".avi", ".mkv", ".mov", ".wmv"];
-    const maxSize = Number(process.env.MAX_FILE_SIZE) || 2147483648; // 2GB
+    const maxSize = Number(globalThis.process.env.MAX_FILE_SIZE) || 2147483648; // 2GB
 
     const fileExtension = filename.toLowerCase().substring(filename.lastIndexOf("."));
     if (!allowedTypes.includes(fileExtension)) {
         errors.push(
-            `File type ${fileExtension} is not allowed. Allowed types: ${allowedTypes.join(", ")}`
+            `File type ${fileExtension} is not allowed. Allowed types: ${allowedTypes.join(", ")}`,
         );
     }
 

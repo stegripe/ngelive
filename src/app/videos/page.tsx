@@ -1,17 +1,28 @@
 "use client";
 
+import {
+    Calendar,
+    Film,
+    HardDrive,
+    Play,
+    Plus,
+    Search,
+    Shield,
+    Trash2,
+    User,
+    Video as VideoIcon,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { UploadVideo } from "@/components/video/upload-video";
 import { VideoPlayer } from "@/components/video/video-player";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { cn, formatDate } from "@/lib/utils";
-import type { Video } from "@/types";
-import { Calendar, Film, HardDrive, Play, Plus, Search, Shield, Trash2, User, Video as VideoIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { formatDate } from "@/lib/utils";
+import { type Video } from "@/types";
 
 export default function VideosPage() {
     const { user } = useAuth();
@@ -53,7 +64,7 @@ export default function VideosPage() {
     };
 
     const filteredVideos = videos.filter((video) =>
-        video.originalName.toLowerCase().includes(searchTerm.toLowerCase())
+        video.originalName.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     // Get page title and description based on user role
@@ -95,7 +106,9 @@ export default function VideosPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-2xl sm:text-3xl font-bold text-white">{pageInfo.title}</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                                {pageInfo.title}
+                            </h1>
                             {user?.role === "ADMIN" && (
                                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 rounded-full text-xs text-purple-400 border border-purple-500/30">
                                     <Shield className="h-3 w-3" />
@@ -125,7 +138,9 @@ export default function VideosPage() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-400">
                             <Film className="h-4 w-4" />
-                            <span>{filteredVideos.length} of {videos.length} videos</span>
+                            <span>
+                                {filteredVideos.length} of {videos.length} videos
+                            </span>
                         </div>
                     </div>
                 </Card>
@@ -138,13 +153,21 @@ export default function VideosPage() {
                             </div>
                             {user?.role === "ADMIN" ? (
                                 <>
-                                    <p className="text-lg font-medium text-white mb-2">No videos in the system</p>
-                                    <p className="text-gray-400">Users haven&apos;t uploaded any videos yet</p>
+                                    <p className="text-lg font-medium text-white mb-2">
+                                        No videos in the system
+                                    </p>
+                                    <p className="text-gray-400">
+                                        Users haven&apos;t uploaded any videos yet
+                                    </p>
                                 </>
                             ) : (
                                 <>
-                                    <p className="text-lg font-medium text-white mb-2">No videos found</p>
-                                    <p className="text-gray-400 mb-6">Upload your first video to get started</p>
+                                    <p className="text-lg font-medium text-white mb-2">
+                                        No videos found
+                                    </p>
+                                    <p className="text-gray-400 mb-6">
+                                        Upload your first video to get started
+                                    </p>
                                     <Button onClick={() => setShowUploadModal(true)}>
                                         <Plus className="h-4 w-4" />
                                         Upload Video
@@ -169,7 +192,10 @@ export default function VideosPage() {
                                 </button>
 
                                 <CardContent className="p-4 space-y-3">
-                                    <h3 className="font-semibold text-white truncate" title={video.originalName}>
+                                    <h3
+                                        className="font-semibold text-white truncate"
+                                        title={video.originalName}
+                                    >
                                         {video.originalName}
                                     </h3>
 

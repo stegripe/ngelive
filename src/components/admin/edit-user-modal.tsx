@@ -1,10 +1,10 @@
 "use client";
 
+import { Key, Mail, RefreshCw, Shield, ToggleLeft, ToggleRight, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUpdateUser } from "@/hooks/useUsers";
-import { Key, Mail, RefreshCw, Shield, ToggleLeft, ToggleRight, User, X } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface EditUserModalProps {
     isOpen: boolean;
@@ -52,9 +52,11 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
         }
     }, [user]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user) {
+            return;
+        }
 
         // Validate password if changing
         if (showPasswordSection) {
@@ -82,20 +84,23 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
                     onSuccess();
                     onClose();
                 },
-            }
+            },
         );
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+
+        let newValue: string | number | boolean = value;
+        if (type === "checkbox") {
+            newValue = (e.target as HTMLInputElement).checked;
+        } else if (name === "rtmpQuota") {
+            newValue = Number.parseInt(value, 10);
+        }
+
         setFormData((prev) => ({
             ...prev,
-            [name]:
-                type === "checkbox"
-                    ? (e.target as HTMLInputElement).checked
-                    : name === "rtmpQuota"
-                      ? Number.parseInt(value)
-                      : value,
+            [name]: newValue,
         }));
     };
 
@@ -120,7 +125,9 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
         });
     };
 
-    if (!isOpen || !user) return null;
+    if (!isOpen || !user) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

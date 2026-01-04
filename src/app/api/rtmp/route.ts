@@ -2,15 +2,17 @@ import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
-import { validateRequired } from "@/lib/validation";
 import { generateStreamKey } from "@/lib/rtmp";
+import { validateRequired } from "@/lib/validation";
 
 // GET /api/rtmp - List RTMP streams
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { searchParams } = new URL(request.url);
         const page = Number(searchParams.get("page")) || 1;
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest) {
                     pages: Math.ceil(total / limit),
                 },
             },
-            "RTMP streams retrieved successfully"
+            "RTMP streams retrieved successfully",
         );
     } catch (error) {
         console.error("Get RTMP streams error:", error);
@@ -89,7 +91,9 @@ export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const body = await request.json();
         const { name, rtmpUrl } = body;
@@ -117,7 +121,7 @@ export async function POST(request: NextRequest) {
         if (user._count.rtmpStreams >= user.rtmpQuota) {
             return sendError(
                 `RTMP quota exceeded. You can only create ${user.rtmpQuota} streams`,
-                400
+                400,
             );
         }
 

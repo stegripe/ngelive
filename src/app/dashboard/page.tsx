@@ -1,5 +1,19 @@
 "use client";
 
+import {
+    Activity,
+    ArrowRight,
+    Clock,
+    Database,
+    Monitor,
+    Plus,
+    Radio,
+    Server,
+    User,
+    Users,
+    Video,
+} from "lucide-react";
+import Link from "next/link";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +22,6 @@ import { useUsers } from "@/hooks/useUsers";
 import { useVideos } from "@/hooks/useVideos";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import { Activity, ArrowRight, Clock, Monitor, Plus, Server, User, Users, Video, Database, Radio } from "lucide-react";
-import Link from "next/link";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -110,27 +122,35 @@ export default function DashboardPage() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {statCards.filter(s => s.show).map((stat) => {
-                        const Icon = stat.icon;
-                        return (
-                            <Card key={stat.title} className="p-4 sm:p-6">
-                                <div className="flex items-start justify-between">
-                                    <div className="space-y-2">
-                                        <p className="text-xs sm:text-sm text-gray-400">{stat.title}</p>
-                                        <p className="text-2xl sm:text-3xl font-bold text-white">
-                                            {stat.value}
-                                        </p>
+                    {statCards
+                        .filter((s) => s.show)
+                        .map((stat) => {
+                            const Icon = stat.icon;
+                            return (
+                                <Card key={stat.title} className="p-4 sm:p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="space-y-2">
+                                            <p className="text-xs sm:text-sm text-gray-400">
+                                                {stat.title}
+                                            </p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-white">
+                                                {stat.value}
+                                            </p>
+                                        </div>
+                                        <div
+                                            className={cn(
+                                                "p-2 sm:p-3 rounded-xl border",
+                                                colorClasses[
+                                                    stat.color as keyof typeof colorClasses
+                                                ],
+                                            )}
+                                        >
+                                            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                                        </div>
                                     </div>
-                                    <div className={cn(
-                                        "p-2 sm:p-3 rounded-xl border",
-                                        colorClasses[stat.color as keyof typeof colorClasses]
-                                    )}>
-                                        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                                    </div>
-                                </div>
-                            </Card>
-                        );
-                    })}
+                                </Card>
+                            );
+                        })}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -148,7 +168,9 @@ export default function DashboardPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium text-white">Manage Streams</p>
-                                            <p className="text-sm text-gray-400">View and control your RTMP streams</p>
+                                            <p className="text-sm text-gray-400">
+                                                View and control your RTMP streams
+                                            </p>
                                         </div>
                                     </div>
                                     <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -162,7 +184,9 @@ export default function DashboardPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium text-white">Upload Videos</p>
-                                            <p className="text-sm text-gray-400">Add new videos to your library</p>
+                                            <p className="text-sm text-gray-400">
+                                                Add new videos to your library
+                                            </p>
                                         </div>
                                     </div>
                                     <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -176,8 +200,12 @@ export default function DashboardPage() {
                                                 <Users className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <p className="font-medium text-white">User Management</p>
-                                                <p className="text-sm text-gray-400">Manage users and permissions</p>
+                                                <p className="font-medium text-white">
+                                                    User Management
+                                                </p>
+                                                <p className="text-sm text-gray-400">
+                                                    Manage users and permissions
+                                                </p>
                                             </div>
                                         </div>
                                         <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -192,7 +220,11 @@ export default function DashboardPage() {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Recent Videos</CardTitle>
                             <Link href="/videos">
-                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-white"
+                                >
                                     View All
                                     <ArrowRight className="h-4 w-4 ml-1" />
                                 </Button>
@@ -231,7 +263,7 @@ export default function DashboardPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                        )
+                                        ),
                                     )
                                 ) : (
                                     <div className="text-center py-8">
@@ -272,7 +304,9 @@ export default function DashboardPage() {
                                             <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-gray-800" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-white">{item.name}</p>
+                                            <p className="text-sm font-medium text-white">
+                                                {item.name}
+                                            </p>
                                             <p className="text-xs text-green-400">{item.status}</p>
                                         </div>
                                     </div>

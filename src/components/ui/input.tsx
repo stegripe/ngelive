@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     error?: boolean;
@@ -14,16 +14,16 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     "flex h-10 w-full rounded-lg border bg-gray-800/50 px-4 py-2 text-sm text-white placeholder:text-gray-500 transition-all duration-200",
                     "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900",
                     "disabled:cursor-not-allowed disabled:opacity-50",
-                    error 
-                        ? "border-red-500/50 focus:ring-red-500 focus:border-red-500" 
+                    error
+                        ? "border-red-500/50 focus:ring-red-500 focus:border-red-500"
                         : "border-gray-700 focus:ring-primary-500 focus:border-primary-500 hover:border-gray-600",
-                    className
+                    className,
                 )}
                 ref={ref}
                 {...props}
             />
         );
-    }
+    },
 );
 
 Input.displayName = "Input";
@@ -40,16 +40,16 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
                     "flex w-full rounded-lg border bg-gray-800/50 px-4 py-3 text-sm text-white placeholder:text-gray-500 transition-all duration-200 min-h-[100px] resize-none",
                     "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900",
                     "disabled:cursor-not-allowed disabled:opacity-50",
-                    error 
-                        ? "border-red-500/50 focus:ring-red-500 focus:border-red-500" 
+                    error
+                        ? "border-red-500/50 focus:ring-red-500 focus:border-red-500"
                         : "border-gray-700 focus:ring-primary-500 focus:border-primary-500 hover:border-gray-600",
-                    className
+                    className,
                 )}
                 ref={ref}
                 {...props}
             />
         );
-    }
+    },
 );
 
 Textarea.displayName = "Textarea";

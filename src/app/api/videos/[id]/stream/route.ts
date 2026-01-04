@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import fs from "node:fs";
 import path from "node:path";
 import { type NextRequest, NextResponse } from "next/server";
@@ -11,7 +12,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const { id } = await params;
-        
+
         const video = await prisma.video.findUnique({
             where: { id },
         });
@@ -31,19 +32,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         if (range) {
             const parts = range.replace(/bytes=/, "").split("-");
-            const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            const start = Number.parseInt(parts[0], 10);
+            const end = parts[1] ? Number.parseInt(parts[1], 10) : fileSize - 1;
             const chunkSize = end - start + 1;
 
             const stream = fs.createReadStream(videoPath, { start, end });
             const chunks: Buffer[] = [];
-            
+
             for await (const chunk of stream) {
                 chunks.push(chunk as Buffer);
             }
-            
+
             const buffer = Buffer.concat(chunks);
-            
+
             return new NextResponse(buffer, {
                 status: 206,
                 headers: {
@@ -53,17 +54,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                     "Content-Type": "video/mp4",
                 },
             });
-        } else {
-            const buffer = fs.readFileSync(videoPath);
-            
-            return new NextResponse(buffer, {
-                status: 200,
-                headers: {
-                    "Content-Length": fileSize.toString(),
-                    "Content-Type": "video/mp4",
-                },
-            });
         }
+        const buffer = fs.readFileSync(videoPath);
+
+        return new NextResponse(buffer, {
+            status: 200,
+            headers: {
+                "Content-Length": fileSize.toString(),
+                "Content-Type": "video/mp4",
+            },
+        });
     } catch (error) {
         console.error("Stream video error:", error);
         return NextResponse.json({ error: "Failed to stream video" }, { status: 500 });

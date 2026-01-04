@@ -1,9 +1,9 @@
 "use client";
 
+import { LogOut, Menu, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import { LogOut, Menu, User, X } from "lucide-react";
 
 interface HeaderProps {
     sidebarOpen: boolean;
@@ -23,13 +23,9 @@ export function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
                         onClick={() => setSidebarOpen(!sidebarOpen)}
                         className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
                     >
-                        {sidebarOpen ? (
-                            <X className="h-5 w-5" />
-                        ) : (
-                            <Menu className="h-5 w-5" />
-                        )}
+                        {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </button>
-                    
+
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-sm">N</span>
@@ -52,13 +48,15 @@ export function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
                                 <p className="text-xs text-gray-400">{user?.email}</p>
                             </div>
                         </div>
-                        
-                        <span className={cn(
-                            "text-xs px-2 py-1 rounded-full font-medium",
-                            user?.role === "ADMIN" 
-                                ? "bg-primary-500/20 text-primary-400 border border-primary-500/30"
-                                : "bg-gray-700 text-gray-300"
-                        )}>
+
+                        <span
+                            className={cn(
+                                "text-xs px-2 py-1 rounded-full font-medium",
+                                user?.role === "ADMIN"
+                                    ? "bg-primary-500/20 text-primary-400 border border-primary-500/30"
+                                    : "bg-gray-700 text-gray-300",
+                            )}
+                        >
                             {user?.role}
                         </span>
                     </div>

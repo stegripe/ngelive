@@ -14,7 +14,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAdmin(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
 
@@ -67,7 +69,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAdmin(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const body = await request.json();
@@ -170,7 +174,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAdmin(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
 

@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const user = await prisma.user.findUnique({
             where: { id: authUser!.userId },
@@ -47,7 +49,9 @@ export async function PUT(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const body = await request.json();
         const { username, currentPassword, newPassword, confirmPassword } = body;

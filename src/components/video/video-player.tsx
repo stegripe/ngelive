@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface VideoPlayerProps {
     isOpen: boolean;
@@ -77,7 +77,9 @@ export function VideoPlayer({ isOpen, onClose, videoId, title }: VideoPlayerProp
         return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
@@ -102,10 +104,7 @@ export function VideoPlayer({ isOpen, onClose, videoId, title }: VideoPlayerProp
                         onLoadedMetadata={handleLoadedMetadata}
                         onEnded={() => setIsPlaying(false)}
                     >
-                        <source
-                            src={`/api/videos/${videoId}/stream`}
-                            type="video/mp4"
-                        />
+                        <source src={`/api/videos/${videoId}/stream`} type="video/mp4" />
                         <track kind="captions" srcLang="en" label="English" src="" default />
                         Your browser does not support the video tag.
                     </video>

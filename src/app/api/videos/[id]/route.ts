@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
@@ -13,7 +13,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
 
@@ -51,7 +53,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
 

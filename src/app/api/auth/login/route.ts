@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
-import { type NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { type NextRequest } from "next/server";
 import { generateToken } from "@/lib/jwt";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
                     rtmpQuota: user.rtmpQuota,
                 },
             },
-            "Login successful"
+            "Login successful",
         );
     } catch (error) {
         console.error("Login error:", error);

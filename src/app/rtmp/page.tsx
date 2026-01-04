@@ -1,5 +1,7 @@
 "use client";
 
+import { AlertCircle, Monitor, Plus, Radio, Search, Zap } from "lucide-react";
+import { useState } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { CreateRtmpModal } from "@/components/rtmp/create-rtmp";
 import { RtmpCard } from "@/components/rtmp/rtmp-card";
@@ -8,9 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useStreams } from "@/hooks/useStreams";
 import { useAuth } from "@/lib/auth-context";
-import type { RtmpStream } from "@/types";
-import { AlertCircle, Monitor, Plus, Radio, Search, Zap } from "lucide-react";
-import { useState } from "react";
+import { type RtmpStream } from "@/types";
 
 // Use RtmpStream instead of defining a local Stream interface
 type Stream = RtmpStream;
@@ -23,7 +23,7 @@ export default function RtmpPage() {
     const { data: streams = [], isLoading, error, refetch } = useStreams();
 
     const filteredStreams = streams.filter((stream: Stream) =>
-        stream.name.toLowerCase().includes(searchTerm.toLowerCase())
+        stream.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     const activeStreams = streams.filter((s: Stream) => s.isStreaming).length;
@@ -54,7 +54,9 @@ export default function RtmpPage() {
                             <AlertCircle className="h-8 w-8 text-red-400" />
                         </div>
                         <p className="text-white font-medium mb-2">Error loading streams</p>
-                        <p className="text-gray-400 text-sm mb-4">Something went wrong while fetching your streams</p>
+                        <p className="text-gray-400 text-sm mb-4">
+                            Something went wrong while fetching your streams
+                        </p>
                         <Button onClick={() => refetch()} variant="outline">
                             Try Again
                         </Button>
@@ -114,7 +116,9 @@ export default function RtmpPage() {
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Quota Used</p>
-                                <p className="text-xl font-bold text-white">{streams.length}/{user?.rtmpQuota || 0}</p>
+                                <p className="text-xl font-bold text-white">
+                                    {streams.length}/{user?.rtmpQuota || 0}
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -125,7 +129,9 @@ export default function RtmpPage() {
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Inactive</p>
-                                <p className="text-xl font-bold text-white">{streams.length - activeStreams}</p>
+                                <p className="text-xl font-bold text-white">
+                                    {streams.length - activeStreams}
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -144,7 +150,9 @@ export default function RtmpPage() {
                             />
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <span>{filteredStreams.length} of {streams.length} streams</span>
+                            <span>
+                                {filteredStreams.length} of {streams.length} streams
+                            </span>
                         </div>
                     </div>
                 </Card>

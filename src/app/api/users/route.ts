@@ -10,7 +10,9 @@ export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAdmin(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { searchParams } = new URL(request.url);
         const page = Number(searchParams.get("page")) || 1;
@@ -21,10 +23,7 @@ export async function GET(request: NextRequest) {
 
         const where = search
             ? {
-                  OR: [
-                      { email: { contains: search } },
-                      { username: { contains: search } },
-                  ],
+                  OR: [{ email: { contains: search } }, { username: { contains: search } }],
               }
             : {};
 
@@ -64,7 +63,7 @@ export async function GET(request: NextRequest) {
                     pages: Math.ceil(total / limit),
                 },
             },
-            "Users retrieved successfully"
+            "Users retrieved successfully",
         );
     } catch (error) {
         console.error("Get users error:", error);
@@ -77,7 +76,9 @@ export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAdmin(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const body = await request.json();
         const { email, username, password, role = "USER", rtmpQuota = 1 } = body;

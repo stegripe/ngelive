@@ -1,65 +1,33 @@
 {
-    "$schema": "https://biomejs.dev/schemas/1.4.1/schema.json",
-    "organizeImports": {
-        "enabled": true
+    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "extends": ["@stegripe/biomejs-config"],
+    "files": {
+        "includes": [
+            "**",
+            "!**/node_modules/**",
+            "!**/.next/**",
+            "!**/dist/**",
+            "!**/build/**",
+            "!**/*.css"
+        ]
     },
     "linter": {
-        "enabled": true,
         "rules": {
-            "recommended": true,
-            "complexity": {
-                "noExcessiveCognitiveComplexity": "error",
-                "noUselessLoneBlockStatements": "error"
-            },
-            "correctness": {
-                "noUnusedVariables": "error",
-                "useExhaustiveDependencies": "warn"
-            },
-            "performance": {
-                "noDelete": "error"
-            },
             "style": {
-                "noNegationElse": "error",
-                "useConst": "error",
-                "useShorthandArrayType": "error"
+                "useNamingConvention": "off",
+                "useFilenamingConvention": "off",
+                "noNonNullAssertion": "off"
             },
             "suspicious": {
-                "noDebugger": "error",
-                "noConsoleLog": "warn"
+                "noExplicitAny": "off"
+            },
+            "correctness": {
+                "useExhaustiveDependencies": "warn"
+            },
+            "nursery": {
+                "useExplicitType": "off",
+                "noFloatingPromises": "off"
             }
         }
-    },
-    "formatter": {
-        "enabled": true,
-        "formatWithErrors": false,
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 100,
-        "lineEnding": "lf"
-    },
-    "javascript": {
-        "formatter": {
-            "quoteStyle": "double",
-            "semicolons": "always",
-            "trailingCommas": "es5"
-        }
-    },
-    "json": {
-        "formatter": {
-            "indentWidth": 4
-        }
-    },
-    "files": {
-        "include": [
-            "backend/src/**/*",
-            "frontend/src/**/*",
-            "prisma/**/*"
-        ],
-        "ignore": [
-            "node_modules/**/*",
-            "dist/**/*",
-            ".next/**/*",
-            "build/**/*"
-        ]
     }
 }

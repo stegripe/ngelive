@@ -1,5 +1,23 @@
 "use client";
 
+import {
+    Activity,
+    ArrowRight,
+    Check,
+    Cpu,
+    Database,
+    Monitor,
+    Radio,
+    RefreshCw,
+    Server,
+    Settings,
+    Users,
+    Video,
+    X,
+    Zap,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +27,6 @@ import { useVideos } from "@/hooks/useVideos";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import { Activity, ArrowRight, Check, Cpu, Database, HardDrive, Monitor, Radio, RefreshCw, Server, Settings, Users, Video, X, Zap } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
 
 interface SystemStatus {
     activeStreams: number;
@@ -132,29 +147,29 @@ export default function AdminPage() {
     };
 
     const systemStatusItems = [
-        { 
-            name: "Database", 
-            status: "Online", 
+        {
+            name: "Database",
+            status: "Online",
             icon: Database,
-            ok: true 
+            ok: true,
         },
-        { 
-            name: "FFmpeg", 
-            status: systemStatus?.ffmpegAvailable ? "Available" : "Not Found", 
+        {
+            name: "FFmpeg",
+            status: systemStatus?.ffmpegAvailable ? "Available" : "Not Found",
             icon: Server,
-            ok: systemStatus?.ffmpegAvailable ?? false 
+            ok: systemStatus?.ffmpegAvailable ?? false,
         },
-        { 
-            name: "Active Streams", 
-            status: `${systemStatus?.activeStreams ?? 0}/${systemStatus?.maxStreams ?? 2}`, 
+        {
+            name: "Active Streams",
+            status: `${systemStatus?.activeStreams ?? 0}/${systemStatus?.maxStreams ?? 2}`,
             icon: Radio,
-            ok: true 
+            ok: true,
         },
-        { 
-            name: "Memory", 
-            status: `${systemStatus?.availableMemoryMB ?? 0} MB`, 
+        {
+            name: "Memory",
+            status: `${systemStatus?.availableMemoryMB ?? 0} MB`,
             icon: Cpu,
-            ok: (systemStatus?.availableMemoryMB ?? 0) > 256 
+            ok: (systemStatus?.availableMemoryMB ?? 0) > 256,
         },
     ];
 
@@ -175,15 +190,19 @@ export default function AdminPage() {
                             <Card key={stat.title} className="p-4 sm:p-6">
                                 <div className="flex items-start justify-between">
                                     <div className="space-y-2">
-                                        <p className="text-xs sm:text-sm text-gray-400">{stat.title}</p>
+                                        <p className="text-xs sm:text-sm text-gray-400">
+                                            {stat.title}
+                                        </p>
                                         <p className="text-2xl sm:text-3xl font-bold text-white">
                                             {stat.value}
                                         </p>
                                     </div>
-                                    <div className={cn(
-                                        "p-2 sm:p-3 rounded-xl border",
-                                        colorClasses[stat.color as keyof typeof colorClasses]
-                                    )}>
+                                    <div
+                                        className={cn(
+                                            "p-2 sm:p-3 rounded-xl border",
+                                            colorClasses[stat.color as keyof typeof colorClasses],
+                                        )}
+                                    >
                                         <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                                     </div>
                                 </div>
@@ -207,7 +226,9 @@ export default function AdminPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium text-white">Manage Users</p>
-                                            <p className="text-sm text-gray-400">Add, edit, or remove users</p>
+                                            <p className="text-sm text-gray-400">
+                                                Add, edit, or remove users
+                                            </p>
                                         </div>
                                     </div>
                                     <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -230,7 +251,9 @@ export default function AdminPage() {
                                         <Database className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-white">Database Management</p>
+                                        <p className="font-medium text-white">
+                                            Database Management
+                                        </p>
                                         <p className="text-sm text-gray-400">Coming soon</p>
                                     </div>
                                 </div>
@@ -242,14 +265,16 @@ export default function AdminPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>System Status</CardTitle>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={fetchSystemStatus}
                                 disabled={statusLoading}
                                 className="text-gray-400 hover:text-white"
                             >
-                                <RefreshCw className={cn("h-4 w-4", statusLoading && "animate-spin")} />
+                                <RefreshCw
+                                    className={cn("h-4 w-4", statusLoading && "animate-spin")}
+                                />
                             </Button>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -264,13 +289,19 @@ export default function AdminPage() {
                                             <Icon className="h-5 w-5 text-gray-400" />
                                             <span className="text-white">{item.name}</span>
                                         </div>
-                                        <span className={cn(
-                                            "inline-flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full border",
-                                            item.ok 
-                                                ? "text-green-400 bg-green-500/10 border-green-500/20"
-                                                : "text-red-400 bg-red-500/10 border-red-500/20"
-                                        )}>
-                                            {item.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                        <span
+                                            className={cn(
+                                                "inline-flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full border",
+                                                item.ok
+                                                    ? "text-green-400 bg-green-500/10 border-green-500/20"
+                                                    : "text-red-400 bg-red-500/10 border-red-500/20",
+                                            )}
+                                        >
+                                            {item.ok ? (
+                                                <Check className="h-3 w-3" />
+                                            ) : (
+                                                <X className="h-3 w-3" />
+                                            )}
                                             {item.status}
                                         </span>
                                     </div>
@@ -290,7 +321,8 @@ export default function AdminPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-gray-400 mb-4">
-                            Adjust stream quality based on your server specifications. Lower quality uses less CPU/RAM.
+                            Adjust stream quality based on your server specifications. Lower quality
+                            uses less CPU/RAM.
                         </p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {Object.entries(qualityLabels).map(([key, label]) => (
@@ -303,7 +335,7 @@ export default function AdminPage() {
                                         "p-4 rounded-lg border transition-all text-left",
                                         systemStatus?.currentQuality === key
                                             ? "bg-primary-500/20 border-primary-500/50 text-primary-400"
-                                            : "bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-800 hover:border-gray-600"
+                                            : "bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-800 hover:border-gray-600",
                                     )}
                                 >
                                     <p className="font-medium text-sm">{label}</p>

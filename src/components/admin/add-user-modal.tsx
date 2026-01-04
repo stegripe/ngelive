@@ -1,10 +1,10 @@
 "use client";
 
+import { Key, Mail, Shield, User, X } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCreateUser } from "@/hooks/useUsers";
-import { Key, Mail, Shield, User, X } from "lucide-react";
-import { useState } from "react";
 
 interface AddUserModalProps {
     isOpen: boolean;
@@ -23,7 +23,7 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
 
     const createUserMutation = useCreateUser();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         createUserMutation.mutate(formData, {
@@ -45,11 +45,13 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: name === "rtmpQuota" ? Number.parseInt(value) : value,
+            [name]: name === "rtmpQuota" ? Number.parseInt(value, 10) : value,
         }));
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

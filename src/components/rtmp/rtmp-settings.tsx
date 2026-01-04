@@ -1,16 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-    useAddVideoToStream,
-    useRemoveVideoFromStream,
-    useReorderStreamVideos,
-} from "@/hooks/useStreamVideos";
-import { useUpdateStream } from "@/hooks/useStreams";
-import { useVideos } from "@/hooks/useVideos";
-import { toastManager } from "@/lib/toast-manager";
 import {
     ArrowDown,
     ArrowUp,
@@ -25,6 +14,17 @@ import {
     X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useUpdateStream } from "@/hooks/useStreams";
+import {
+    useAddVideoToStream,
+    useRemoveVideoFromStream,
+    useReorderStreamVideos,
+} from "@/hooks/useStreamVideos";
+import { useVideos } from "@/hooks/useVideos";
+import { toastManager } from "@/lib/toast-manager";
 
 interface RtmpSettingsProps {
     isOpen: boolean;
@@ -88,7 +88,7 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
         onClose();
     };
 
-    const handleUpdateStreamInfo = async (e: React.FormEvent) => {
+    const handleUpdateStreamInfo = (e: React.FormEvent) => {
         e.preventDefault();
         updateStreamMutation.mutate(
             { id: stream.id, data: streamInfo },
@@ -97,7 +97,7 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
                     onUpdate();
                     handleClose();
                 },
-            }
+            },
         );
     };
 
@@ -113,7 +113,9 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
         const newVideos = [...streamVideos];
         const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-        if (targetIndex < 0 || targetIndex >= newVideos.length) return;
+        if (targetIndex < 0 || targetIndex >= newVideos.length) {
+            return;
+        }
 
         [newVideos[index], newVideos[targetIndex]] = [newVideos[targetIndex], newVideos[index]];
 
@@ -129,10 +131,12 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
     const filteredVideos = availableVideos.filter(
         (video: StreamVideo["video"]) =>
             video.originalName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-            !streamVideos.some((sv) => sv.video.id === video.id)
+            !streamVideos.some((sv) => sv.video.id === video.id),
     );
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -400,7 +404,7 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
                                                     </p>
                                                     <p className="text-xs text-gray-400">
                                                         {(Number(video.size) / 1024 / 1024).toFixed(
-                                                            1
+                                                            1,
                                                         )}{" "}
                                                         MB • {video.user.username}
                                                     </p>

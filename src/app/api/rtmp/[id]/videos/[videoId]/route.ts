@@ -12,7 +12,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id, videoId } = await params;
         const where = authUser!.role === "ADMIN" ? { id } : { id, userId: authUser!.userId };

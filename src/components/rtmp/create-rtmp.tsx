@@ -1,10 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { api } from "@/lib/api-client";
-import { useState } from "react";
 
 interface CreateRtmpModalProps {
     isOpen: boolean;
@@ -43,7 +43,7 @@ export function CreateRtmpModal({ isOpen, onClose, onSuccess }: CreateRtmpModalP
             ) {
                 setError(
                     (err.response as { data: { message?: string } }).data.message ||
-                        "Failed to create stream"
+                        "Failed to create stream",
                 );
             } else {
                 setError("Failed to create stream");

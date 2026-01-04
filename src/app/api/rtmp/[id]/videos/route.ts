@@ -12,7 +12,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const where = authUser!.role === "ADMIN" ? { id } : { id, userId: authUser!.userId };
@@ -59,7 +61,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const body = await request.json();
@@ -162,7 +166,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const body = await request.json();
@@ -229,7 +235,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         return sendSuccess(
             { assignedVideos: videos.length },
-            "Videos assigned to stream successfully"
+            "Videos assigned to stream successfully",
         );
     } catch (error) {
         console.error("Assign videos to stream error:", error);

@@ -12,7 +12,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const { id } = await params;
         const body = await request.json();
@@ -47,8 +49,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 prisma.streamVideo.update({
                     where: { id: item.id },
                     data: { order: item.order },
-                })
-            )
+                }),
+            ),
         );
 
         // Log reorder

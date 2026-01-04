@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { AlertCircle, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface UploadVideoProps {
     isOpen: boolean;
@@ -27,8 +27,10 @@ export function UploadVideo({ isOpen, onClose, onSuccess }: UploadVideoProps) {
         }
     };
 
-    const handleUpload = async () => {
-        if (!file) return;
+    const handleUpload = () => {
+        if (!file) {
+            return;
+        }
 
         setUploading(true);
         setError(null);
@@ -113,7 +115,9 @@ export function UploadVideo({ isOpen, onClose, onSuccess }: UploadVideoProps) {
         onClose();
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

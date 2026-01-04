@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: "default" | "outline" | "ghost" | "danger" | "success";
@@ -17,7 +17,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                             variant === "default",
                         "border border-gray-600 bg-transparent text-gray-300 hover:bg-gray-800 hover:border-gray-500 focus:ring-gray-500":
                             variant === "outline",
-                        "text-gray-400 hover:bg-gray-800 hover:text-white focus:ring-gray-500": 
+                        "text-gray-400 hover:bg-gray-800 hover:text-white focus:ring-gray-500":
                             variant === "ghost",
                         "bg-red-600 text-white hover:bg-red-500 focus:ring-red-500 shadow-lg shadow-red-600/25":
                             variant === "danger",
@@ -30,13 +30,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                         "h-12 px-6 text-base": size === "lg",
                         "h-9 w-9 p-0": size === "icon",
                     },
-                    className
+                    className,
                 )}
                 ref={ref}
                 {...props}
             />
         );
-    }
+    },
 );
 
 Button.displayName = "Button";

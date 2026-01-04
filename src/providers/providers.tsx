@@ -1,7 +1,7 @@
 "use client";
 
-import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "./query-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {

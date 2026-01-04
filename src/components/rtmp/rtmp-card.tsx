@@ -1,12 +1,12 @@
 "use client";
 
+import { Film, Play, Radio, Settings, Square, Trash2, User } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-import type { RtmpStream } from "@/types";
-import { Film, Play, Radio, Settings, Square, Trash2, User } from "lucide-react";
-import { useState } from "react";
+import { type RtmpStream } from "@/types";
 import { RtmpSettings } from "./rtmp-settings";
 
 interface RtmpCardProps {
@@ -60,21 +60,29 @@ export function RtmpCard({ stream, onUpdate }: RtmpCardProps) {
         <>
             <Card className="overflow-hidden group hover:border-gray-600 transition-colors">
                 {/* Header with status */}
-                <div className={cn(
-                    "px-4 py-3 flex items-center justify-between border-b",
-                    stream.isStreaming 
-                        ? "bg-green-500/10 border-green-500/20" 
-                        : "bg-gray-800/50 border-gray-700/50"
-                )}>
+                <div
+                    className={cn(
+                        "px-4 py-3 flex items-center justify-between border-b",
+                        stream.isStreaming
+                            ? "bg-green-500/10 border-green-500/20"
+                            : "bg-gray-800/50 border-gray-700/50",
+                    )}
+                >
                     <div className="flex items-center gap-2">
-                        <Radio className={cn(
-                            "h-4 w-4",
-                            stream.isStreaming ? "text-green-400 animate-pulse" : "text-gray-500"
-                        )} />
-                        <span className={cn(
-                            "text-sm font-medium",
-                            stream.isStreaming ? "text-green-400" : "text-gray-400"
-                        )}>
+                        <Radio
+                            className={cn(
+                                "h-4 w-4",
+                                stream.isStreaming
+                                    ? "text-green-400 animate-pulse"
+                                    : "text-gray-500",
+                            )}
+                        />
+                        <span
+                            className={cn(
+                                "text-sm font-medium",
+                                stream.isStreaming ? "text-green-400" : "text-gray-400",
+                            )}
+                        >
                             {stream.isStreaming ? "Live" : "Offline"}
                         </span>
                     </div>

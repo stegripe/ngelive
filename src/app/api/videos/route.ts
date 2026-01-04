@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import fs from "node:fs";
 import path from "node:path";
 import { type NextRequest } from "next/server";
@@ -10,7 +11,9 @@ export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         // Build query based on user role
         const query =
@@ -46,7 +49,9 @@ export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
         const authError = requireAuth(authUser);
-        if (authError) return authError;
+        if (authError) {
+            return authError;
+        }
 
         const formData = await request.formData();
         const file = formData.get("video") as File | null;
@@ -70,13 +75,16 @@ export async function POST(request: NextRequest) {
         }
 
         // Get file size limit from env (default 2GB)
-        const maxSize = Number(process.env.MAX_FILE_SIZE) || 2147483648;
+        const maxSize = Number(globalThis.process.env.MAX_FILE_SIZE) || 2147483648;
         if (file.size > maxSize) {
-            return sendError(`File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB.`, 400);
+            return sendError(
+                `File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB.`,
+                400,
+            );
         }
 
         // Ensure uploads directory exists
-        const uploadsDir = path.join(process.cwd(), "uploads");
+        const uploadsDir = path.join(globalThis.process.cwd(), "uploads");
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }

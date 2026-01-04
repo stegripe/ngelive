@@ -1,7 +1,7 @@
-import { api } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 
 export const useUsers = () => {
     const { user } = useAuth();

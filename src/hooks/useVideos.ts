@@ -1,6 +1,6 @@
-import { api } from "@/lib/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
 
 export type Video = {
     id: string;
@@ -51,7 +51,7 @@ export const useDeleteVideo = () => {
             await queryClient.cancelQueries({ queryKey: ["videos"] });
             const previousVideos = queryClient.getQueryData<Video[]>(["videos"]);
             queryClient.setQueryData<Video[]>(["videos"], (old) =>
-                old?.filter((video) => video.id !== id)
+                old?.filter((video) => video.id !== id),
             );
             return { previousVideos };
         },

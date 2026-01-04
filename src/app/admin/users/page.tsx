@@ -1,15 +1,15 @@
 "use client";
 
+import { Edit, Plus, Search, Shield, Trash2, User, Users, Zap } from "lucide-react";
+import { useState } from "react";
 import { AddUserModal } from "@/components/admin/add-user-modal";
 import { EditUserModal } from "@/components/admin/edit-user-modal";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDeleteUser, useUsers } from "@/hooks/useUsers";
 import { cn } from "@/lib/utils";
-import { Edit, Plus, Search, Shield, Trash2, User, Users, Zap } from "lucide-react";
-import { useState } from "react";
 
 type UserType = {
     id: string;
@@ -44,9 +44,10 @@ export default function AdminUsersPage() {
         refetch();
     };
 
-    const filteredUsers = users.filter((user: UserType) =>
-        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredUsers = users.filter(
+        (user: UserType) =>
+            user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     const adminCount = users.filter((u: UserType) => u.role === "ADMIN").length;
@@ -74,7 +75,9 @@ export default function AdminUsersPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-white">User Management</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                            User Management
+                        </h1>
                         <p className="text-gray-400 mt-1">Manage users and their permissions</p>
                     </div>
                     <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
@@ -125,7 +128,9 @@ export default function AdminUsersPage() {
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Regular Users</p>
-                                <p className="text-xl font-bold text-white">{users.length - adminCount}</p>
+                                <p className="text-xl font-bold text-white">
+                                    {users.length - adminCount}
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -177,13 +182,18 @@ export default function AdminUsersPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-700/50">
                                 {filteredUsers.map((user: UserType) => (
-                                    <tr key={user.id} className="hover:bg-gray-800/30 transition-colors">
+                                    <tr
+                                        key={user.id}
+                                        className="hover:bg-gray-800/30 transition-colors"
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
                                                     <User className="h-5 w-5 text-gray-400" />
                                                 </div>
-                                                <span className="text-white font-medium">{user.username}</span>
+                                                <span className="text-white font-medium">
+                                                    {user.username}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-400">
@@ -195,7 +205,7 @@ export default function AdminUsersPage() {
                                                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
                                                     user.role === "ADMIN"
                                                         ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                                                        : "bg-primary-500/10 text-primary-400 border-primary-500/20"
+                                                        : "bg-primary-500/10 text-primary-400 border-primary-500/20",
                                                 )}
                                             >
                                                 {user.role === "ADMIN" ? (
@@ -207,7 +217,9 @@ export default function AdminUsersPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-white font-medium">{user.rtmpQuota}</span>
+                                            <span className="text-white font-medium">
+                                                {user.rtmpQuota}
+                                            </span>
                                             <span className="text-gray-500 text-sm"> streams</span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -216,13 +228,17 @@ export default function AdminUsersPage() {
                                                     "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border",
                                                     user.isActive
                                                         ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                        : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                                                        : "bg-gray-500/10 text-gray-400 border-gray-500/20",
                                                 )}
                                             >
-                                                <span className={cn(
-                                                    "w-1.5 h-1.5 rounded-full mr-1.5",
-                                                    user.isActive ? "bg-green-400" : "bg-gray-400"
-                                                )} />
+                                                <span
+                                                    className={cn(
+                                                        "w-1.5 h-1.5 rounded-full mr-1.5",
+                                                        user.isActive
+                                                            ? "bg-green-400"
+                                                            : "bg-gray-400",
+                                                    )}
+                                                />
                                                 {user.isActive ? "Active" : "Inactive"}
                                             </span>
                                         </td>
@@ -273,10 +289,14 @@ export default function AdminUsersPage() {
                                         "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border",
                                         user.role === "ADMIN"
                                             ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                                            : "bg-primary-500/10 text-primary-400 border-primary-500/20"
+                                            : "bg-primary-500/10 text-primary-400 border-primary-500/20",
                                     )}
                                 >
-                                    {user.role === "ADMIN" ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                                    {user.role === "ADMIN" ? (
+                                        <Shield className="h-3 w-3" />
+                                    ) : (
+                                        <User className="h-3 w-3" />
+                                    )}
                                     {user.role}
                                 </span>
                             </div>
@@ -284,14 +304,16 @@ export default function AdminUsersPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="text-sm">
                                         <span className="text-gray-500">Quota: </span>
-                                        <span className="text-white font-medium">{user.rtmpQuota}</span>
+                                        <span className="text-white font-medium">
+                                            {user.rtmpQuota}
+                                        </span>
                                     </div>
                                     <span
                                         className={cn(
                                             "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
                                             user.isActive
                                                 ? "bg-green-500/10 text-green-400"
-                                                : "bg-gray-500/10 text-gray-400"
+                                                : "bg-gray-500/10 text-gray-400",
                                         )}
                                     >
                                         {user.isActive ? "Active" : "Inactive"}
