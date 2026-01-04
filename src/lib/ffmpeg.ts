@@ -89,7 +89,7 @@ const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
 };
 
 const CONFIG = {
-    MAX_CONCURRENT_STREAMS: 999,
+    MAX_CONCURRENT_STREAMS: 50,
 
     MAX_RETRY_COUNT: 10,
     RETRY_DELAY_MS: 3000,
@@ -306,16 +306,21 @@ function createConcatFile(streamId: string, videoPaths: string[], loopForever: b
 
     let concatContent = "";
     
+    // Escape special characters in file paths
+    const escapePath = (p: string): string => {
+        return p.replace(/\\/g, "/").replace(/'/g, "'\\''");
+    };
+    
     if (loopForever) {
-        // Repeat the playlist 1000 times for "infinite" loop
-        for (let i = 0; i < 1000; i++) {
+        // Repeat the playlist 100 times for "infinite" loop (should last days)
+        for (let i = 0; i < 100; i++) {
             for (const videoPath of videoPaths) {
-                concatContent += `file '${videoPath.replace(/\\/g, "/")}'\n`;
+                concatContent += `file '${escapePath(videoPath)}'\n`;
             }
         }
     } else {
         for (const videoPath of videoPaths) {
-            concatContent += `file '${videoPath.replace(/\\/g, "/")}'\n`;
+            concatContent += `file '${escapePath(videoPath)}'\n`;
         }
     }
 
