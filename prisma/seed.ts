@@ -1,16 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import nodeProcess from "node:process";
 
 const prisma = new PrismaClient();
 
 async function main() {
-    const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || "admin123", 10);
+    const adminPassword = await bcrypt.hash(nodeProcess.env.ADMIN_PASSWORD || "admin123", 10);
 
     await prisma.user.upsert({
-        where: { email: process.env.ADMIN_EMAIL || "admin@stegripe.org" },
+        where: { email: nodeProcess.env.ADMIN_EMAIL || "admin@stegripe.org" },
         update: {},
         create: {
-            email: process.env.ADMIN_EMAIL || "admin@stegripe.org",
+            email: nodeProcess.env.ADMIN_EMAIL || "admin@stegripe.org",
             username: "admin",
             password: adminPassword,
             role: "ADMIN",
@@ -38,7 +39,7 @@ async function main() {
 main()
     .catch((e) => {
         console.error(e);
-        process.exit(1);
+        nodeProcess.exit(1);
     })
     .finally(async () => {
         await prisma.$disconnect();
