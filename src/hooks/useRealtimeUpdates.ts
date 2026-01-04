@@ -41,7 +41,15 @@ export function useRealtimeUpdates() {
             eventSourceRef.current.close();
         }
 
-        const token = localStorage.getItem("token");
+        // Safely access localStorage
+        let token: string | null = null;
+        try {
+            token = localStorage.getItem("token");
+        } catch {
+            // localStorage may not be available in some environments
+            return;
+        }
+
         if (!token) {
             return;
         }

@@ -48,8 +48,10 @@ export function broadcastEvent(type: EventType, targetUserId?: string) {
             if (!targetUserId || clientId.startsWith(`${targetUserId}-`)) {
                 controller.enqueue(data);
             }
-        } catch {
-            // Client disconnected, mark for removal
+        } catch (error) {
+            // Client likely disconnected - mark for removal
+            // Common errors: controller closed, stream cancelled
+            console.debug(`[SSE] Client ${clientId} disconnected:`, error);
             clientsToRemove.push(clientId);
         }
     }
