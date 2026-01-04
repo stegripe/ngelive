@@ -739,7 +739,7 @@ export const getSystemStatus = () => {
 // Sync stream statuses (like StreamFlow) - check DB vs memory
 export const syncStreamStatuses = async (): Promise<void> => {
     try {
-        console.log("[FFmpeg] Syncing stream statuses...");
+        let changesDetected = false;
 
         // Find all streams marked as live in DB
         const liveStreams = await prisma.rtmpStream.findMany({
@@ -752,7 +752,7 @@ export const syncStreamStatuses = async (): Promise<void> => {
 
             // Skip streams that are currently starting up
             if (isStartingUp) {
-                console.log(`[FFmpeg] Stream ${stream.id} is starting up, skipping sync`);
+                if (FFMPEG_VERBOSE) console.log(`[FFmpeg] Stream ${stream.id} is starting up, skipping sync`);
                 continue;
             }
 
@@ -762,7 +762,7 @@ export const syncStreamStatuses = async (): Promise<void> => {
                 const isRetrying = retryCount !== undefined && retryCount > 0 && retryCount < MAX_RETRY_ATTEMPTS;
 
                 if (isRetrying) {
-                    console.log(`[FFmpeg] Stream ${stream.id} is in retry process, skipping sync`);
+                    if (FFMPEG_VERBOSE) console.log(`[FFmpeg] Stream ${stream.id} is in retry process, skipping sync`);
                     continue;
                 }
 
@@ -773,6 +773,7 @@ export const syncStreamStatuses = async (): Promise<void> => {
                 });
                 console.log(`[FFmpeg] Updated stream ${stream.id} status to 'offline'`);
                 cleanupStreamData(stream.id);
+                changesDetected = true;
             }
         }
 
@@ -794,12 +795,14 @@ export const syncStreamStatuses = async (): Promise<void> => {
                 }
                 runningStreams.delete(streamId);
                 cleanupStreamData(streamId);
+                changesDetected = true;
             } else if (!stream.isStreaming) {
                 console.log(`[FFmpeg] Stream ${streamId} active in memory but status is 'offline' in DB, updating to 'live'`);
                 await prisma.rtmpStream.update({
                     where: { id: streamId },
                     data: { isStreaming: true },
                 });
+                changesDetected = true;
             }
 
             // Check if FFmpeg process has exited
@@ -815,11 +818,15 @@ export const syncStreamStatuses = async (): Promise<void> => {
                         });
                     }
                     cleanupStreamData(streamId);
+                    changesDetected = true;
                 }
             }
         }
 
-        console.log(`[FFmpeg] Stream status sync completed. Active streams: ${runningStreams.size}`);
+        // Only log if verbose mode or if changes were detected
+        if (FFMPEG_VERBOSE || changesDetected) {
+            console.log(`[FFmpeg] Stream status sync completed. Active streams: ${runningStreams.size}`);
+        }
     } catch (error) {
         console.error("[FFmpeg] Error syncing stream statuses:", error);
     }
