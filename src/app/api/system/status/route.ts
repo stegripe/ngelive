@@ -5,7 +5,6 @@ import { sendError, sendSuccess } from "@/lib/response";
 
 export const dynamic = "force-dynamic";
 
-// Track if streams have been restored on startup
 let streamsRestored = false;
 
 export async function GET(request: NextRequest) {
@@ -16,7 +15,6 @@ export async function GET(request: NextRequest) {
             return authError;
         }
 
-        // Restore streams on first API call (one-time startup action)
         if (!streamsRestored) {
             streamsRestored = true;
             console.log("[System Status] First API call, restoring streams...");

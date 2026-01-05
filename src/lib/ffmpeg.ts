@@ -462,7 +462,6 @@ export const stopAllStreams = async (): Promise<void> => {
 export const getSystemStatus = async () => {
     const activeCount = Array.from(runningStreams.values()).filter((s) => s.isRunning).length;
 
-    // Get total stream count from database
     let totalStreams = 0;
     try {
         totalStreams = await prisma.rtmpStream.count();
