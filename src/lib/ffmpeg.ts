@@ -18,6 +18,7 @@ interface StreamState {
     isRunning: boolean;
     retryCount: number;
     lastError?: string;
+    lastActivityTime: number; // Timestamp of last activity (video start/end)
 }
 
 const runningStreams: Map<string, StreamState> = new Map();
@@ -164,6 +165,9 @@ function streamSingleVideo(streamId: string): void {
         return;
     }
 
+    // Update activity timestamp
+    state.lastActivityTime = Date.now();
+
     // Check if manually stopped
     if (manuallyStoppingStreams.has(streamId)) {
         console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
@@ -222,6 +226,7 @@ function streamSingleVideo(streamId: string): void {
             // Video completed successfully, move to next
             console.log("[FFmpeg] Stream " + streamId + " - Video completed successfully");
             currentState.retryCount = 0; // Reset retry count on success
+            currentState.lastActivityTime = Date.now(); // Update activity time
             
             // Move to next video
             currentState.videoIndex++;
@@ -355,6 +360,7 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             playlistMode: stream.playlistMode,
             isRunning: true,
             retryCount: 0,
+            lastActivityTime: Date.now(),
         };
 
         runningStreams.set(stream.id, state);
@@ -460,6 +466,8 @@ export const getSystemStatus = () => {
 export const syncStreamStatuses = async (): Promise<void> => {
     try {
         let changesDetected = false;
+        const now = Date.now();
+        const ACTIVITY_TIMEOUT_MS = 30000; // 30 seconds - if no activity in this time, consider inactive
 
         // Find all streams marked as live in DB
         const liveStreams = await prisma.rtmpStream.findMany({
@@ -468,9 +476,17 @@ export const syncStreamStatuses = async (): Promise<void> => {
 
         for (const stream of liveStreams) {
             const state = runningStreams.get(stream.id);
-            const isReallyActive = state?.isRunning === true;
+            
+            // Check if stream is actually active:
+            // 1. State exists in memory
+            // 2. isRunning flag is true
+            // 3. Had activity within the last 30 seconds (handles gap between videos)
+            const hasRecentActivity = state && (now - state.lastActivityTime) < ACTIVITY_TIMEOUT_MS;
+            const isReallyActive = state?.isRunning === true && hasRecentActivity;
 
-            if (!isReallyActive) {
+            if (!isReallyActive && state?.isRunning !== true) {
+                // Only mark as offline if isRunning is explicitly false or state doesn't exist
+                // This prevents false positives during video transitions
                 console.log("[FFmpeg] Found inconsistent stream " + stream.id + ": marked as 'live' in DB but not active");
                 await prisma.rtmpStream.update({
                     where: { id: stream.id },
