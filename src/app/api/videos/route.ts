@@ -1,7 +1,7 @@
-import { Buffer } from "node:buffer";
-import fs from "node:fs";
-import path from "node:path";
+import { Buffer } from "buffer";
+import fs from "fs";
 import { type NextRequest } from "next/server";
+import path from "path";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             return sendError("Invalid file type. Only video files are allowed.", 400);
         }
 
-        const maxSize = Number(globalThis.process.env.MAX_FILE_SIZE) || 2147483648;
+        const maxSize = Number(process.env.MAX_FILE_SIZE) || 2147483648;
         if (file.size > maxSize) {
             return sendError(
                 `File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB.`,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const uploadsDir = path.join(globalThis.process.cwd(), "cache", "video");
+        const uploadsDir = path.join(process.cwd(), "cache", "video");
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }

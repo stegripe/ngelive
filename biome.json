@@ -9,7 +9,9 @@
             "style": {
                 "useNamingConvention": "off",
                 "useFilenamingConvention": "off",
-                "noNonNullAssertion": "off"
+                "noNonNullAssertion": "off",
+                "useNodejsImportProtocol": "off",
+                "noRestrictedGlobals": "off"
             },
             "suspicious": {
                 "noExplicitAny": "off"

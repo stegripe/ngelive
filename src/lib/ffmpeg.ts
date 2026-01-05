@@ -1,12 +1,10 @@
-import { type ChildProcess, execSync, spawn } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
-import nodeProcess from "node:process";
-import { setInterval, setTimeout } from "node:timers";
+import { type ChildProcess, execSync, spawn } from "child_process";
+import fs from "fs";
+import os from "os";
 import prisma from "./prisma";
 import { startVideoMonitor } from "./video-monitor";
 
-const FFMPEG_VERBOSE = nodeProcess.env.FFMPEG_VERBOSE === "true";
+const FFMPEG_VERBOSE = process.env.FFMPEG_VERBOSE === "true";
 
 interface StreamState {
     process: ChildProcess | null;
@@ -631,22 +629,22 @@ function cleanupOnExit(): void {
     manuallyStoppingStreams.clear();
 }
 
-nodeProcess.on("exit", cleanupOnExit);
-nodeProcess.on("SIGINT", () => {
+process.on("exit", cleanupOnExit);
+process.on("SIGINT", () => {
     cleanupOnExit();
-    nodeProcess.exit(0);
+    process.exit(0);
 });
-nodeProcess.on("SIGTERM", () => {
+process.on("SIGTERM", () => {
     cleanupOnExit();
-    nodeProcess.exit(0);
+    process.exit(0);
 });
-nodeProcess.on("SIGHUP", () => {
+process.on("SIGHUP", () => {
     cleanupOnExit();
-    nodeProcess.exit(0);
+    process.exit(0);
 });
 
-nodeProcess.on("uncaughtException", (err) => {
+process.on("uncaughtException", (err) => {
     console.error("[FFmpeg] Uncaught exception, cleaning up:", err);
     cleanupOnExit();
-    nodeProcess.exit(1);
+    process.exit(1);
 });

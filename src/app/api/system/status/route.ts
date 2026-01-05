@@ -1,9 +1,12 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAdmin, requireAuth } from "@/lib/auth";
-import { getSystemStatus, setQualityPreset } from "@/lib/ffmpeg";
+import { getSystemStatus, restorePreviousStreams, setQualityPreset } from "@/lib/ffmpeg";
 import { sendError, sendSuccess } from "@/lib/response";
 
 export const dynamic = "force-dynamic";
+
+// Track if streams have been restored on startup
+let streamsRestored = false;
 
 export async function GET(request: NextRequest) {
     try {
@@ -11,6 +14,15 @@ export async function GET(request: NextRequest) {
         const authError = requireAuth(authUser);
         if (authError) {
             return authError;
+        }
+
+        // Restore streams on first API call (one-time startup action)
+        if (!streamsRestored) {
+            streamsRestored = true;
+            console.log("[System Status] First API call, restoring streams...");
+            restorePreviousStreams().catch((err) => {
+                console.error("[System Status] Error restoring streams:", err);
+            });
         }
 
         const status = getSystemStatus();
