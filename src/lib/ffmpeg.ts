@@ -170,7 +170,9 @@ function streamSingleVideo(streamId: string): void {
 
     // Check if manually stopped
     if (manuallyStoppingStreams.has(streamId)) {
-        console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
+        if (FFMPEG_VERBOSE) {
+            console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
+        }
         manuallyStoppingStreams.delete(streamId);
         runningStreams.delete(streamId);
         return;
@@ -179,7 +181,10 @@ function streamSingleVideo(streamId: string): void {
     const videoPath = state.videoPaths[state.videoIndex];
     const videoFilename = videoPath.split(/[/\\]/).pop() || videoPath;
     
-    console.log("[FFmpeg] Stream " + streamId + " - Now playing: " + videoFilename + " (" + (state.videoIndex + 1) + "/" + state.videoPaths.length + ")");
+    // Only log first video or when verbose mode is on
+    if (state.videoIndex === 0 || FFMPEG_VERBOSE) {
+        console.log("[FFmpeg] Stream " + streamId + " - Playing: " + videoFilename + " (" + (state.videoIndex + 1) + "/" + state.videoPaths.length + ")");
+    }
 
     const ffmpegArgs = buildFFmpegArgsForVideo(videoPath, state.rtmpUrl);
     
@@ -210,7 +215,9 @@ function streamSingleVideo(streamId: string): void {
         
         // Check if stream was manually stopped
         if (manuallyStoppingStreams.has(streamId)) {
-            console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
+            if (FFMPEG_VERBOSE) {
+                console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
+            }
             manuallyStoppingStreams.delete(streamId);
             runningStreams.delete(streamId);
             updateStreamStatusInDB(streamId, false);
@@ -224,7 +231,9 @@ function streamSingleVideo(streamId: string): void {
 
         if (code === 0) {
             // Video completed successfully, move to next
-            console.log("[FFmpeg] Stream " + streamId + " - Video completed successfully");
+            if (FFMPEG_VERBOSE) {
+                console.log("[FFmpeg] Stream " + streamId + " - Video completed");
+            }
             currentState.retryCount = 0; // Reset retry count on success
             currentState.lastActivityTime = Date.now(); // Update activity time
             
@@ -243,10 +252,10 @@ function streamSingleVideo(streamId: string): void {
                         currentState.videoPaths = [...currentState.videoPaths].sort(() => Math.random() - 0.5);
                     }
                     
-                    console.log("[FFmpeg] Stream " + streamId + " - Playlist completed, restarting from beginning");
+                    console.log("[FFmpeg] Stream " + streamId + " - Playlist loop restart");
                 } else {
                     // Playlist done, no loop
-                    console.log("[FFmpeg] Stream " + streamId + " - Playlist completed");
+                    console.log("[FFmpeg] Stream " + streamId + " - Playlist completed, stopping");
                     currentState.isRunning = false;
                     runningStreams.delete(streamId);
                     updateStreamStatusInDB(streamId, false);
@@ -254,18 +263,20 @@ function streamSingleVideo(streamId: string): void {
                 }
             }
             
-            // Small delay between videos (like autostream.bat's "timeout /t 2")
+            // Minimal delay between videos for smoother transitions (500ms instead of 2s)
             setTimeout(() => {
                 streamSingleVideo(streamId);
-            }, 2000);
+            }, 500);
             
         } else {
             // Error occurred
-            console.error("[FFmpeg] Stream " + streamId + " - Video error: code=" + code + ", signal=" + signal);
+            if (FFMPEG_VERBOSE || currentState.retryCount === 0) {
+                console.error("[FFmpeg] Stream " + streamId + " - Error: code=" + code + ", signal=" + signal);
+            }
             currentState.retryCount++;
             
             if (currentState.retryCount >= MAX_RETRY_ATTEMPTS) {
-                console.error("[FFmpeg] Stream " + streamId + " - Max retries reached, stopping stream");
+                console.error("[FFmpeg] Stream " + streamId + " - Max retries reached, stopping");
                 currentState.isRunning = false;
                 runningStreams.delete(streamId);
                 updateStreamStatusInDB(streamId, false);
@@ -274,7 +285,9 @@ function streamSingleVideo(streamId: string): void {
             
             // Exponential backoff retry: 2s, 4s, 8s, 16s... max 60s
             const backoffMs = Math.min(2000 * Math.pow(2, currentState.retryCount - 1), 60000);
-            console.log("[FFmpeg] Stream " + streamId + " - Retrying in " + (backoffMs/1000) + "s (attempt " + currentState.retryCount + "/" + MAX_RETRY_ATTEMPTS + ")");
+            if (FFMPEG_VERBOSE) {
+                console.log("[FFmpeg] Stream " + streamId + " - Retrying in " + (backoffMs/1000) + "s");
+            }
             
             setTimeout(() => {
                 streamSingleVideo(streamId);
@@ -284,7 +297,9 @@ function streamSingleVideo(streamId: string): void {
 
     // Handle process error
     ffmpegProcess.on("error", (err) => {
-        console.error("[FFmpeg] Stream " + streamId + " - Process error:", err.message);
+        if (FFMPEG_VERBOSE) {
+            console.error("[FFmpeg] Stream " + streamId + " - Process error:", err.message);
+        }
         
         const currentState = runningStreams.get(streamId);
         if (currentState) {
@@ -385,14 +400,18 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
 export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     const state = runningStreams.get(streamId);
 
-    console.log("[FFmpeg] Stop request for stream " + streamId + ", isActive: " + (state?.isRunning ?? false));
+    if (FFMPEG_VERBOSE) {
+        console.log("[FFmpeg] Stop request for stream " + streamId);
+    }
 
     if (!state) {
         // Stream not in memory, but might be marked as live in DB
         try {
             const stream = await prisma.rtmpStream.findUnique({ where: { id: streamId } });
             if (stream && stream.isStreaming) {
-                console.log("[FFmpeg] Stream " + streamId + " not in memory but status is 'live' in DB. Fixing.");
+                if (FFMPEG_VERBOSE) {
+                    console.log("[FFmpeg] Stream " + streamId + " not in memory, fixing DB status");
+                }
                 await updateStreamStatusInDB(streamId, false);
             }
         } catch (e) {
@@ -487,12 +506,13 @@ export const syncStreamStatuses = async (): Promise<void> => {
             if (!isReallyActive && state?.isRunning !== true) {
                 // Only mark as offline if isRunning is explicitly false or state doesn't exist
                 // This prevents false positives during video transitions
-                console.log("[FFmpeg] Found inconsistent stream " + stream.id + ": marked as 'live' in DB but not active");
+                if (FFMPEG_VERBOSE) {
+                    console.log("[FFmpeg] Fixing inconsistent stream " + stream.id);
+                }
                 await prisma.rtmpStream.update({
                     where: { id: stream.id },
                     data: { isStreaming: false, currentVideo: null },
                 });
-                console.log("[FFmpeg] Updated stream " + stream.id + " status to 'offline'");
                 changesDetected = true;
             }
         }
