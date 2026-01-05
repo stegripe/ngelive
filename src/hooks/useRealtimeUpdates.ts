@@ -21,7 +21,6 @@ export function useRealtimeUpdates() {
     const reconnectAttempts = useRef(0);
     const userIdRef = useRef(user?.id);
 
-    // Keep userIdRef up to date
     useEffect(() => {
         userIdRef.current = user?.id;
     }, [user?.id]);
@@ -83,9 +82,10 @@ export function useRealtimeUpdates() {
                             console.info(`[SSE] User event: ${data.type}`);
                             queryClient.invalidateQueries({ queryKey: ["users"] });
                             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-                            // Refresh current user's profile if it was updated
                             if (data.type === "user:updated") {
-                                const eventData = data.data as { user?: { id?: string } } | undefined;
+                                const eventData = data.data as
+                                    | { user?: { id?: string } }
+                                    | undefined;
                                 if (eventData?.user?.id === userIdRef.current) {
                                     refreshUser();
                                 }
@@ -105,7 +105,6 @@ export function useRealtimeUpdates() {
                 eventSource.close();
                 eventSourceRef.current = null;
 
-                // Exponential backoff: 1s, 2s, 4s, max 10s
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
                 reconnectAttempts.current++;
 

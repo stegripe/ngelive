@@ -7,7 +7,6 @@ import { startVideoMonitor } from "./video-monitor";
 
 const FFMPEG_VERBOSE = nodeProcess.env.FFMPEG_VERBOSE === "true";
 
-// Stream state tracking - video-by-video approach like autostream.bat
 interface StreamState {
     process: ChildProcess | null;
     startTime: Date;
@@ -18,7 +17,7 @@ interface StreamState {
     isRunning: boolean;
     retryCount: number;
     lastError?: string;
-    lastActivityTime: number; // Timestamp of last activity (video start/end)
+    lastActivityTime: number;
 }
 
 const runningStreams: Map<string, StreamState> = new Map();
@@ -38,7 +37,6 @@ interface QualityPreset {
 
 type QualityLevel = "ultralow" | "low" | "medium" | "high";
 
-// Settings like autostream.bat (1080p, 5Mbps, superfast, zerolatency, g=120)
 const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
     ultralow: {
         resolution: "854:480",
@@ -84,7 +82,7 @@ const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
 
 const CONFIG = {
     MAX_CONCURRENT_STREAMS: 50,
-    CURRENT_QUALITY: "high" as QualityLevel, // Default to high (1080p, 5Mbps like autostream.bat)
+    CURRENT_QUALITY: "high" as QualityLevel,
 };
 
 const getQualityPreset = (): QualityPreset => QUALITY_PRESETS[CONFIG.CURRENT_QUALITY];
@@ -118,14 +116,9 @@ const getAvailableMemoryMB = (): number => {
     }
 };
 
-// Build FFmpeg args for a single video - like autostream.bat
 const buildFFmpegArgsForVideo = (videoPath: string, rtmpUrl: string): string[] => {
     const preset = getQualityPreset();
     
-    // Exactly like autostream.bat:
-    // ffmpeg -re -i "%%a" -vf scale=1920:1080 -c:v libx264 -preset superfast -tune zerolatency 
-    // -b:v 5000k -maxrate 6000k -bufsize 10000k -pix_fmt yuv420p -g 120 
-    // -c:a aac -b:a 128k -ar 44100 -f flv rtmp://...
     return [
         "-re",
         "-i", videoPath,
@@ -146,7 +139,6 @@ const buildFFmpegArgsForVideo = (videoPath: string, rtmpUrl: string): string[] =
     ];
 };
 
-// Helper to update stream status in database
 async function updateStreamStatusInDB(streamId: string, isStreaming: boolean): Promise<void> {
     try {
         await prisma.rtmpStream.update({
@@ -158,20 +150,17 @@ async function updateStreamStatusInDB(streamId: string, isStreaming: boolean): P
     }
 }
 
-// Start streaming a single video, then call next when done
 function streamSingleVideo(streamId: string): void {
     const state = runningStreams.get(streamId);
     if (!state || !state.isRunning) {
         return;
     }
 
-    // Update activity timestamp
     state.lastActivityTime = Date.now();
 
-    // Check if manually stopped
     if (manuallyStoppingStreams.has(streamId)) {
         if (FFMPEG_VERBOSE) {
-            console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
+            console.log(`[FFmpeg] Stream ${streamId} was manually stopped`);
         }
         manuallyStoppingStreams.delete(streamId);
         runningStreams.delete(streamId);
@@ -181,15 +170,14 @@ function streamSingleVideo(streamId: string): void {
     const videoPath = state.videoPaths[state.videoIndex];
     const videoFilename = videoPath.split(/[/\\]/).pop() || videoPath;
     
-    // Only log first video or when verbose mode is on
     if (state.videoIndex === 0 || FFMPEG_VERBOSE) {
-        console.log("[FFmpeg] Stream " + streamId + " - Playing: " + videoFilename);
+        console.log(`[FFmpeg] Stream ${streamId} - Playing: ${videoFilename}`);
     }
 
     const ffmpegArgs = buildFFmpegArgsForVideo(videoPath, state.rtmpUrl);
     
     if (FFMPEG_VERBOSE) {
-        console.log("[FFmpeg] Command: ffmpeg " + ffmpegArgs.join(" "));
+        console.log(`[FFmpeg] Command: ffmpeg ${ffmpegArgs.join(" ")}`);
     }
 
     const ffmpegProcess = spawn("ffmpeg", ffmpegArgs, {
@@ -199,24 +187,21 @@ function streamSingleVideo(streamId: string): void {
 
     state.process = ffmpegProcess;
 
-    // Handle stderr (FFmpeg logs here)
     ffmpegProcess.stderr?.on("data", (data) => {
         const message = data.toString().trim();
         if (message && FFMPEG_VERBOSE) {
             if (message.includes("Error") || message.includes("error")) {
-                console.error("[FFmpeg " + streamId + "] " + message);
+                console.error(`[FFmpeg ${streamId}] ${message}`);
             }
         }
     });
 
-    // Handle process exit
     ffmpegProcess.on("exit", (code, signal) => {
         const currentState = runningStreams.get(streamId);
         
-        // Check if stream was manually stopped
         if (manuallyStoppingStreams.has(streamId)) {
             if (FFMPEG_VERBOSE) {
-                console.log("[FFmpeg] Stream " + streamId + " was manually stopped");
+                console.log(`[FFmpeg] Stream ${streamId} was manually stopped`);
             }
             manuallyStoppingStreams.delete(streamId);
             runningStreams.delete(streamId);
@@ -224,37 +209,31 @@ function streamSingleVideo(streamId: string): void {
             return;
         }
 
-        // Check if stream state still exists
         if (!currentState || !currentState.isRunning) {
             return;
         }
 
         if (code === 0) {
-            // Video completed successfully, move to next
             if (FFMPEG_VERBOSE) {
                 console.log("[FFmpeg] Stream " + streamId + " - Video completed");
             }
-            currentState.retryCount = 0; // Reset retry count on success
-            currentState.lastActivityTime = Date.now(); // Update activity time
+            currentState.retryCount = 0;
+            currentState.lastActivityTime = Date.now();
             
-            // Move to next video
             currentState.videoIndex++;
             
-            // Check if we need to loop
             if (currentState.videoIndex >= currentState.videoPaths.length) {
                 const shouldLoop = currentState.playlistMode === "LOOP" || currentState.playlistMode === "SHUFFLE_LOOP";
                 
                 if (shouldLoop) {
                     currentState.videoIndex = 0;
                     
-                    // Shuffle again if needed
                     if (currentState.playlistMode === "SHUFFLE_LOOP") {
                         currentState.videoPaths = [...currentState.videoPaths].sort(() => Math.random() - 0.5);
                     }
                     
                     console.log("[FFmpeg] Stream " + streamId + " - Playlist loop restart");
                 } else {
-                    // Playlist done, no loop
                     console.log("[FFmpeg] Stream " + streamId + " - Playlist completed, stopping");
                     currentState.isRunning = false;
                     runningStreams.delete(streamId);
@@ -263,13 +242,11 @@ function streamSingleVideo(streamId: string): void {
                 }
             }
             
-            // Minimal delay between videos for smoother transitions (500ms instead of 2s)
             setTimeout(() => {
                 streamSingleVideo(streamId);
             }, 500);
             
         } else {
-            // Error occurred - only log on first retry attempt
             if (currentState.retryCount === 0) {
                 console.error("[FFmpeg] Stream " + streamId + " - Error: code=" + code + ", retrying...");
             }
@@ -283,7 +260,6 @@ function streamSingleVideo(streamId: string): void {
                 return;
             }
             
-            // Exponential backoff retry: 2s, 4s, 8s, 16s... max 60s
             const backoffMs = Math.min(2000 * Math.pow(2, currentState.retryCount - 1), 60000);
             if (FFMPEG_VERBOSE) {
                 console.log("[FFmpeg] Stream " + streamId + " - Retrying in " + (backoffMs/1000) + "s");
@@ -295,7 +271,6 @@ function streamSingleVideo(streamId: string): void {
         }
     });
 
-    // Handle process error
     ffmpegProcess.on("error", (err) => {
         if (FFMPEG_VERBOSE) {
             console.error("[FFmpeg] Stream " + streamId + " - Process error:", err.message);
@@ -312,7 +287,6 @@ function streamSingleVideo(streamId: string): void {
                 return;
             }
             
-            // Retry with backoff
             const backoffMs = Math.min(2000 * Math.pow(2, currentState.retryCount - 1), 60000);
             setTimeout(() => {
                 streamSingleVideo(streamId);
@@ -341,7 +315,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             console.warn("[FFmpeg] Low memory warning: " + availableMem + "MB available");
         }
 
-        // Get video paths
         let videoPaths = stream.streamVideos.map((sv) => sv.video.path);
 
         if (videoPaths.length === 0) {
@@ -349,7 +322,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             return false;
         }
 
-        // Validate all video files exist
         for (const videoPath of videoPaths) {
             if (!fs.existsSync(videoPath)) {
                 console.error("[FFmpeg] Video file not found: " + videoPath);
@@ -357,7 +329,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
             }
         }
 
-        // Shuffle if needed
         const shuffleMode = stream.playlistMode === "SHUFFLE" || stream.playlistMode === "SHUFFLE_LOOP";
         if (shuffleMode) {
             videoPaths = [...videoPaths].sort(() => Math.random() - 0.5);
@@ -365,7 +336,6 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
 
         console.log("[FFmpeg] Starting stream " + stream.id + " with " + videoPaths.length + " videos, mode: " + stream.playlistMode);
 
-        // Create stream state
         const state: StreamState = {
             process: null,
             startTime: new Date(),
@@ -380,10 +350,8 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
 
         runningStreams.set(stream.id, state);
 
-        // Start streaming first video
         streamSingleVideo(stream.id);
 
-        // Start video monitor
         try {
             startVideoMonitor();
         } catch (e) {
@@ -405,7 +373,6 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
     }
 
     if (!state) {
-        // Stream not in memory, but might be marked as live in DB
         try {
             const stream = await prisma.rtmpStream.findUnique({ where: { id: streamId } });
             if (stream && stream.isStreaming) {
@@ -420,11 +387,9 @@ export const stopFFmpegStream = async (streamId: string): Promise<void> => {
         return;
     }
 
-    // Mark as manually stopping
     manuallyStoppingStreams.add(streamId);
     state.isRunning = false;
 
-    // Terminate current FFmpeg process
     if (state.process && typeof state.process.kill === "function") {
         try {
             state.process.kill("SIGTERM");
@@ -481,14 +446,12 @@ export const getSystemStatus = () => {
     };
 };
 
-// Sync stream statuses - check DB vs memory (runs every 5 minutes)
 export const syncStreamStatuses = async (): Promise<void> => {
     try {
         let changesDetected = false;
         const now = Date.now();
-        const ACTIVITY_TIMEOUT_MS = 30000; // 30 seconds - if no activity in this time, consider inactive
+        const ACTIVITY_TIMEOUT_MS = 30000;
 
-        // Find all streams marked as live in DB
         const liveStreams = await prisma.rtmpStream.findMany({
             where: { isStreaming: true },
         });
@@ -496,16 +459,10 @@ export const syncStreamStatuses = async (): Promise<void> => {
         for (const stream of liveStreams) {
             const state = runningStreams.get(stream.id);
             
-            // Check if stream is actually active:
-            // 1. State exists in memory
-            // 2. isRunning flag is true
-            // 3. Had activity within the last 30 seconds (handles gap between videos)
             const hasRecentActivity = state && (now - state.lastActivityTime) < ACTIVITY_TIMEOUT_MS;
             const isReallyActive = state?.isRunning === true && hasRecentActivity;
 
             if (!isReallyActive && state?.isRunning !== true) {
-                // Only mark as offline if isRunning is explicitly false or state doesn't exist
-                // This prevents false positives during video transitions
                 if (FFMPEG_VERBOSE) {
                     console.log("[FFmpeg] Fixing inconsistent stream " + stream.id);
                 }
@@ -517,7 +474,6 @@ export const syncStreamStatuses = async (): Promise<void> => {
             }
         }
 
-        // Check for orphaned processes in memory
         for (const [streamId, state] of runningStreams.entries()) {
             if (!state.isRunning) {
                 runningStreams.delete(streamId);
@@ -534,14 +490,10 @@ export const syncStreamStatuses = async (): Promise<void> => {
     }
 };
 
-// Run sync every 5 minutes
 setInterval(syncStreamStatuses, 5 * 60 * 1000);
 
-// Restore streams that were marked as running in database (persisted state)
-// This is called on app startup to resume streams that were running before shutdown
 export async function restorePreviousStreams(): Promise<void> {
     try {
-        // Find all streams marked as streaming in database
         const streamsToRestore = await prisma.rtmpStream.findMany({
             where: { isStreaming: true },
             include: {
@@ -560,12 +512,10 @@ export async function restorePreviousStreams(): Promise<void> {
 
         for (const stream of streamsToRestore) {
             try {
-                // Skip if already running in memory
                 if (runningStreams.has(stream.id)) {
                     continue;
                 }
 
-                // Check if stream has videos
                 if (stream.streamVideos.length === 0) {
                     console.log("[FFmpeg] Stream " + stream.id + " has no videos, marking offline");
                     await prisma.rtmpStream.update({
@@ -575,7 +525,6 @@ export async function restorePreviousStreams(): Promise<void> {
                     continue;
                 }
 
-                // Validate all video files exist
                 let allVideosExist = true;
                 for (const sv of stream.streamVideos) {
                     if (!sv.video.path || !fs.existsSync(sv.video.path)) {
@@ -593,10 +542,8 @@ export async function restorePreviousStreams(): Promise<void> {
                     continue;
                 }
 
-                // Set default playlist mode if needed
                 const playlistMode = stream.playlistMode || "LOOP";
 
-                // Start the stream
                 const success = startFFmpegStream({
                     id: stream.id,
                     streamVideos: stream.streamVideos,
@@ -614,11 +561,9 @@ export async function restorePreviousStreams(): Promise<void> {
                     });
                 }
 
-                // Small delay between starts to avoid overwhelming the system
                 await new Promise(resolve => setTimeout(resolve, 1000));
             } catch (error) {
                 console.error("[FFmpeg] Error restoring stream " + stream.id + ":", error);
-                // Mark as not streaming if restore failed
                 try {
                     await prisma.rtmpStream.update({
                         where: { id: stream.id },
@@ -636,16 +581,12 @@ export async function restorePreviousStreams(): Promise<void> {
     }
 }
 
-// Cleanup function to kill all FFmpeg processes on exit
-// Note: We do NOT update isStreaming to false here - we want to preserve the state
-// so streams can be restored on next startup
 function cleanupOnExit(): void {
     console.log("[FFmpeg] Cleaning up all streams before exit...");
     
     for (const [streamId, state] of runningStreams.entries()) {
         if (state.process && typeof state.process.kill === "function") {
             try {
-                // Use SIGKILL to ensure immediate termination
                 state.process.kill("SIGKILL");
             } catch (e) {
                 void e;
@@ -657,7 +598,6 @@ function cleanupOnExit(): void {
     manuallyStoppingStreams.clear();
 }
 
-// Handle process exit signals
 nodeProcess.on("exit", cleanupOnExit);
 nodeProcess.on("SIGINT", () => {
     cleanupOnExit();
@@ -672,7 +612,6 @@ nodeProcess.on("SIGHUP", () => {
     nodeProcess.exit(0);
 });
 
-// Handle uncaught exceptions
 nodeProcess.on("uncaughtException", (err) => {
     console.error("[FFmpeg] Uncaught exception, cleaning up:", err);
     cleanupOnExit();

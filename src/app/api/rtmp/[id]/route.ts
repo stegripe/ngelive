@@ -120,8 +120,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             updateData.playlistMode = playlistMode;
         }
 
-        // Note: Quality is now controlled globally via Settings, not per-stream
-
         const updatedStream = await prisma.rtmpStream.update({
             where: { id },
             data: updateData,
