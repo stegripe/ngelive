@@ -536,3 +536,44 @@ export const syncStreamStatuses = async (): Promise<void> => {
 
 // Run sync every 5 minutes
 setInterval(syncStreamStatuses, 5 * 60 * 1000);
+
+// Cleanup function to kill all FFmpeg processes on exit
+function cleanupOnExit(): void {
+    console.log("[FFmpeg] Cleaning up all streams before exit...");
+    
+    for (const [streamId, state] of runningStreams.entries()) {
+        if (state.process && typeof state.process.kill === "function") {
+            try {
+                // Use SIGKILL to ensure immediate termination
+                state.process.kill("SIGKILL");
+            } catch (e) {
+                void e;
+            }
+        }
+        runningStreams.delete(streamId);
+    }
+    
+    manuallyStoppingStreams.clear();
+}
+
+// Handle process exit signals
+nodeProcess.on("exit", cleanupOnExit);
+nodeProcess.on("SIGINT", () => {
+    cleanupOnExit();
+    nodeProcess.exit(0);
+});
+nodeProcess.on("SIGTERM", () => {
+    cleanupOnExit();
+    nodeProcess.exit(0);
+});
+nodeProcess.on("SIGHUP", () => {
+    cleanupOnExit();
+    nodeProcess.exit(0);
+});
+
+// Handle uncaught exceptions
+nodeProcess.on("uncaughtException", (err) => {
+    console.error("[FFmpeg] Uncaught exception, cleaning up:", err);
+    cleanupOnExit();
+    nodeProcess.exit(1);
+});
