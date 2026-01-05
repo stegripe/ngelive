@@ -1,8 +1,10 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
+import nodeProcess from "node:process";
+import { setInterval } from "node:timers";
 import prisma from "./prisma";
 
-const _VIDEO_DIR = path.resolve(process.cwd(), "cache", "video");
+const _VIDEO_DIR = path.resolve(nodeProcess.cwd(), "cache", "video");
 
 let monitorStarted = false;
 

@@ -10,8 +10,7 @@
                 "useNamingConvention": "off",
                 "useFilenamingConvention": "off",
                 "noNonNullAssertion": "off",
-                "useNodejsImportProtocol": "off",
-                "noRestrictedGlobals": "off"
+                "useNodejsImportProtocol": "warn"
             },
             "suspicious": {
                 "noExplicitAny": "off"

@@ -1,10 +1,12 @@
-import { type ChildProcess, execSync, spawn } from "child_process";
-import fs from "fs";
-import os from "os";
+import { type ChildProcess, execSync, spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import nodeProcess from "node:process";
+import { setInterval, setTimeout } from "node:timers";
 import prisma from "./prisma";
 import { startVideoMonitor } from "./video-monitor";
 
-const FFMPEG_VERBOSE = process.env.FFMPEG_VERBOSE === "true";
+const FFMPEG_VERBOSE = nodeProcess.env.FFMPEG_VERBOSE === "true";
 
 interface StreamState {
     process: ChildProcess | null;
@@ -457,11 +459,20 @@ export const stopAllStreams = async (): Promise<void> => {
     await Promise.all(streamIds.map((id) => stopFFmpegStream(id)));
 };
 
-export const getSystemStatus = () => {
+export const getSystemStatus = async () => {
     const activeCount = Array.from(runningStreams.values()).filter((s) => s.isRunning).length;
+
+    // Get total stream count from database
+    let totalStreams = 0;
+    try {
+        totalStreams = await prisma.rtmpStream.count();
+    } catch (e) {
+        void e;
+    }
+
     return {
         activeStreams: activeCount,
-        maxStreams: CONFIG.MAX_CONCURRENT_STREAMS,
+        maxStreams: totalStreams,
         availableMemoryMB: getAvailableMemoryMB(),
         currentQuality: CONFIG.CURRENT_QUALITY,
         ffmpegAvailable: checkFFmpegAvailable(),
@@ -629,22 +640,22 @@ function cleanupOnExit(): void {
     manuallyStoppingStreams.clear();
 }
 
-process.on("exit", cleanupOnExit);
-process.on("SIGINT", () => {
+nodeProcess.on("exit", cleanupOnExit);
+nodeProcess.on("SIGINT", () => {
     cleanupOnExit();
-    process.exit(0);
+    nodeProcess.exit(0);
 });
-process.on("SIGTERM", () => {
+nodeProcess.on("SIGTERM", () => {
     cleanupOnExit();
-    process.exit(0);
+    nodeProcess.exit(0);
 });
-process.on("SIGHUP", () => {
+nodeProcess.on("SIGHUP", () => {
     cleanupOnExit();
-    process.exit(0);
+    nodeProcess.exit(0);
 });
 
-process.on("uncaughtException", (err) => {
+nodeProcess.on("uncaughtException", (err) => {
     console.error("[FFmpeg] Uncaught exception, cleaning up:", err);
     cleanupOnExit();
-    process.exit(1);
+    nodeProcess.exit(1);
 });

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        const status = getSystemStatus();
+        const status = await getSystemStatus();
 
         return sendSuccess(
             {
@@ -64,7 +64,7 @@ export async function PUT(request: NextRequest) {
             setQualityPreset(quality);
         }
 
-        const status = getSystemStatus();
+        const status = await getSystemStatus();
 
         return sendSuccess(
             {
