@@ -8,7 +8,6 @@ interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// GET /api/videos/[id]/stream - Stream video
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const { id } = await params;

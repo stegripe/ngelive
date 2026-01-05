@@ -1,14 +1,16 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import { stopFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
+
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// POST /api/rtmp/[id]/stop - Stop streaming
 export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -33,10 +35,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Stream is not running", 400);
         }
 
-        // Stop FFmpeg process
         await stopFFmpegStream(id);
 
-        // Update stream status
         await prisma.rtmpStream.update({
             where: { id },
             data: {
@@ -45,7 +45,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Log stop
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -53,6 +52,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 message: `Stream stopped by ${authUser!.email}`,
             },
         });
+
+        eventEmitter.emit("stream:stopped", { streamId: id });
 
         return sendSuccess({ message: "Stream stopped successfully" }, "Stream stopped");
     } catch (error) {

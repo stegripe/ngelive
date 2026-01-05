@@ -58,7 +58,6 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
             return;
         }
 
-        // Validate password if changing
         if (showPasswordSection) {
             if (passwordData.newPassword !== passwordData.confirmPassword) {
                 setPasswordError("Passwords do not match");
@@ -96,6 +95,25 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
             newValue = (e.target as HTMLInputElement).checked;
         } else if (name === "rtmpQuota") {
             newValue = Number.parseInt(value, 10);
+        }
+
+        if (name === "role") {
+            if (value === "ADMIN") {
+                setFormData((prev) => ({
+                    ...prev,
+                    role: value,
+                    rtmpQuota: -1,
+                }));
+                return;
+            }
+            if (value === "USER" && formData.rtmpQuota === -1) {
+                setFormData((prev) => ({
+                    ...prev,
+                    role: value,
+                    rtmpQuota: 1,
+                }));
+                return;
+            }
         }
 
         setFormData((prev) => ({
@@ -209,16 +227,22 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
                         >
                             RTMP Quota
                         </label>
-                        <Input
-                            id="edit-rtmp-quota"
-                            name="rtmpQuota"
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={formData.rtmpQuota}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
+                        {formData.role === "ADMIN" ? (
+                            <div className="w-full bg-gray-700/50 text-yellow-400 border border-gray-600 rounded-lg px-3 py-2 cursor-not-allowed">
+                                Unlimited
+                            </div>
+                        ) : (
+                            <Input
+                                id="edit-rtmp-quota"
+                                name="rtmpQuota"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={formData.rtmpQuota}
+                                onChange={handleChange}
+                                className="w-full"
+                            />
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between">

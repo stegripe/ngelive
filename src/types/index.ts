@@ -17,7 +17,7 @@ export interface RtmpStream {
     isActive: boolean;
     isStreaming: boolean;
     currentVideo: string | null;
-    playlistMode: "LOOP" | "ONCE" | "SHUFFLE";
+    playlistMode: "LOOP" | "ONCE" | "SHUFFLE" | "SHUFFLE_LOOP";
     createdAt: string;
     updatedAt: string;
     user: User;

@@ -3,7 +3,6 @@
 import {
     Activity,
     ArrowRight,
-    Check,
     Cpu,
     Database,
     Monitor,
@@ -13,7 +12,6 @@ import {
     Settings,
     Users,
     Video,
-    X,
     Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -21,6 +19,7 @@ import { useCallback, useEffect, useState } from "react";
 import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { useStreams } from "@/hooks/useStreams";
 import { useUsers } from "@/hooks/useUsers";
 import { useVideos } from "@/hooks/useVideos";
@@ -50,7 +49,6 @@ export default function AdminPage() {
     const [statusLoading, setStatusLoading] = useState(false);
     const [changingQuality, setChangingQuality] = useState(false);
 
-    // React Query hooks
     const { data: users = [], isLoading: usersLoading } = useUsers();
     const { data: streams = [], isLoading: streamsLoading } = useStreams();
     const { data: videos = [], isLoading: videosLoading } = useVideos();
@@ -100,13 +98,7 @@ export default function AdminPage() {
         return (
             <LayoutWrapper>
                 <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="relative">
-                            <div className="w-12 h-12 border-4 border-gray-700 rounded-full" />
-                            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                        </div>
-                        <p className="mt-4 text-gray-400">Loading admin panel...</p>
-                    </div>
+                    <LoadingSpinner message="Loading admin panel..." />
                 </div>
             </LayoutWrapper>
         );
@@ -145,33 +137,6 @@ export default function AdminPage() {
         yellow: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
         purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     };
-
-    const systemStatusItems = [
-        {
-            name: "Database",
-            status: "Online",
-            icon: Database,
-            ok: true,
-        },
-        {
-            name: "FFmpeg",
-            status: systemStatus?.ffmpegAvailable ? "Available" : "Not Found",
-            icon: Server,
-            ok: systemStatus?.ffmpegAvailable ?? false,
-        },
-        {
-            name: "Active Streams",
-            status: `${systemStatus?.activeStreams ?? 0}/${systemStatus?.maxStreams ?? 2}`,
-            icon: Radio,
-            ok: true,
-        },
-        {
-            name: "Memory",
-            status: `${systemStatus?.availableMemoryMB ?? 0} MB`,
-            icon: Cpu,
-            ok: (systemStatus?.availableMemoryMB ?? 0) > 256,
-        },
-    ];
 
     return (
         <LayoutWrapper>
@@ -277,36 +242,125 @@ export default function AdminPage() {
                                 />
                             </Button>
                         </CardHeader>
-                        <CardContent className="space-y-3">
-                            {systemStatusItems.map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <div
-                                        key={item.name}
-                                        className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <Icon className="h-5 w-5 text-gray-400" />
-                                            <span className="text-white">{item.name}</span>
-                                        </div>
-                                        <span
+                        <CardContent>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Server Status */}
+                                <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                    <div className="relative">
+                                        <Server className="h-5 w-5 text-gray-400" />
+                                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800 bg-green-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-white">Server</p>
+                                        <p className="text-xs text-green-400">Online</p>
+                                    </div>
+                                </div>
+
+                                {/* Database Status */}
+                                <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                    <div className="relative">
+                                        <Database className="h-5 w-5 text-gray-400" />
+                                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800 bg-green-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-white">Database</p>
+                                        <p className="text-xs text-green-400">Connected</p>
+                                    </div>
+                                </div>
+
+                                {/* FFmpeg Status */}
+                                <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                    <div className="relative">
+                                        <Radio className="h-5 w-5 text-gray-400" />
+                                        <div
                                             className={cn(
-                                                "inline-flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full border",
-                                                item.ok
-                                                    ? "text-green-400 bg-green-500/10 border-green-500/20"
-                                                    : "text-red-400 bg-red-500/10 border-red-500/20",
+                                                "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
+                                                statusLoading && "bg-yellow-500 animate-pulse",
+                                                !statusLoading &&
+                                                    systemStatus?.ffmpegAvailable &&
+                                                    "bg-green-500",
+                                                !statusLoading &&
+                                                    !systemStatus?.ffmpegAvailable &&
+                                                    "bg-red-500",
+                                            )}
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-white">FFmpeg</p>
+                                        <p
+                                            className={cn(
+                                                "text-xs",
+                                                statusLoading && "text-yellow-400",
+                                                !statusLoading &&
+                                                    systemStatus?.ffmpegAvailable &&
+                                                    "text-green-400",
+                                                !statusLoading &&
+                                                    !systemStatus?.ffmpegAvailable &&
+                                                    "text-red-400",
                                             )}
                                         >
-                                            {item.ok ? (
-                                                <Check className="h-3 w-3" />
-                                            ) : (
-                                                <X className="h-3 w-3" />
-                                            )}
-                                            {item.status}
-                                        </span>
+                                            {statusLoading && "Checking..."}
+                                            {!statusLoading &&
+                                                systemStatus?.ffmpegAvailable &&
+                                                "Ready"}
+                                            {!statusLoading &&
+                                                !systemStatus?.ffmpegAvailable &&
+                                                "Not Available"}
+                                        </p>
                                     </div>
-                                );
-                            })}
+                                </div>
+
+                                {/* Memory Status */}
+                                <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                    <div className="relative">
+                                        <Cpu className="h-5 w-5 text-gray-400" />
+                                        <div
+                                            className={cn(
+                                                "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-gray-800",
+                                                (systemStatus?.availableMemoryMB ?? 0) > 256
+                                                    ? "bg-green-500"
+                                                    : "bg-yellow-500",
+                                            )}
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-white">Memory</p>
+                                        <p
+                                            className={cn(
+                                                "text-xs",
+                                                (systemStatus?.availableMemoryMB ?? 0) > 256
+                                                    ? "text-green-400"
+                                                    : "text-yellow-400",
+                                            )}
+                                        >
+                                            {systemStatus?.availableMemoryMB ?? 0} MB Available
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Additional info row */}
+                            {systemStatus && (
+                                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Activity className="h-4 w-4 text-gray-500" />
+                                            <span className="text-gray-400">Active Streams:</span>
+                                            <span className="text-white font-medium">
+                                                {systemStatus.activeStreams}/
+                                                {systemStatus.maxStreams}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Video className="h-4 w-4 text-gray-500" />
+                                            <span className="text-gray-400">Quality:</span>
+                                            <span className="text-white font-medium capitalize">
+                                                {systemStatus.currentQuality}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

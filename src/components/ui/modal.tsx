@@ -20,7 +20,6 @@ const sizeClasses = {
 };
 
 export function Modal({ isOpen, onClose, title, children, className, size = "md" }: ModalProps) {
-    // Handle escape key
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === "Escape" && isOpen) {
@@ -32,7 +31,6 @@ export function Modal({ isOpen, onClose, title, children, className, size = "md"
         return () => document.removeEventListener("keydown", handleEscape);
     }, [isOpen, onClose]);
 
-    // Prevent body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = "hidden";

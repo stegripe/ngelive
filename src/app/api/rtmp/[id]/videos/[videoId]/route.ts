@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -7,7 +8,6 @@ interface RouteParams {
     params: Promise<{ id: string; videoId: string }>;
 }
 
-// DELETE /api/rtmp/[id]/videos/[videoId] - Remove video from stream
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -32,7 +32,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             return sendError("Cannot modify playlist while stream is active", 400);
         }
 
-        // Find and delete the stream video
         const streamVideo = await prisma.streamVideo.findFirst({
             where: { id: videoId, streamId: id },
             include: {
@@ -50,7 +49,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             where: { id: videoId },
         });
 
-        // Log removal
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -58,6 +56,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                 message: `Video "${streamVideo.video.originalName}" removed from stream by ${authUser!.email}`,
             },
         });
+
+        eventEmitter.emit("video:removed_from_stream", { streamId: id, videoId });
 
         return sendSuccess(null, "Video removed from stream successfully");
     } catch (error) {

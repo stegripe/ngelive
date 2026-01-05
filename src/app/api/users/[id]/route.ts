@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAdmin } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail } from "@/lib/validation";
@@ -9,7 +10,6 @@ interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// GET /api/users/[id] - Get user by ID (Admin only)
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -64,7 +64,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// PUT /api/users/[id] - Update user (Admin only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -95,7 +94,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             password?: string;
         } = {};
 
-        // Check username
         if (username && username !== user.username) {
             const existingUser = await prisma.user.findFirst({
                 where: {
@@ -109,7 +107,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             updateData.username = username;
         }
 
-        // Check email
         if (email && email !== user.email) {
             if (!validateEmail(email)) {
                 return sendError("Invalid email format", 400);
@@ -162,6 +159,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
+        eventEmitter.emit("user:updated", { user: updatedUser });
+
         return sendSuccess({ user: updatedUser }, "User updated successfully");
     } catch (error) {
         console.error("Update user error:", error);
@@ -169,7 +168,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// DELETE /api/users/[id] - Delete user (Admin only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -196,6 +194,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         await prisma.user.delete({
             where: { id },
         });
+
+        eventEmitter.emit("user:deleted", { userId: id, user });
 
         return sendSuccess({ deletedUser: user }, "User deleted successfully");
     } catch (error) {

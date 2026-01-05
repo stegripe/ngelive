@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAdmin } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail, validateRequired } from "@/lib/validation";
 
-// GET /api/users - List all users (Admin only)
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -71,7 +71,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST /api/users - Create new user (Admin only)
 export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -134,6 +133,8 @@ export async function POST(request: NextRequest) {
                 createdAt: true,
             },
         });
+
+        eventEmitter.emit("user:created", { user });
 
         return sendSuccess({ user }, "User created successfully", 201);
     } catch (error) {

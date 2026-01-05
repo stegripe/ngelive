@@ -5,7 +5,8 @@ import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { validateEmail, validateRequired } from "@/lib/validation";
 
-// POST /api/auth/login
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();

@@ -143,15 +143,28 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                                     RTMP Quota
                                 </span>
                             </div>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-white tabular-nums">
-                                    {typeof user?.rtmpQuota === "number" ? (
-                                        user.rtmpQuota
-                                    ) : (
-                                        <span className="opacity-50">0</span>
-                                    )}
-                                </span>
-                                <span className="text-xs text-gray-500">streams available</span>
+                            <div className="flex items-center gap-1.5">
+                                {user?.rtmpQuota === -1 || user?.role === "ADMIN" ? (
+                                    <>
+                                        <span className="text-xl font-bold text-yellow-400 leading-none">
+                                            ∞
+                                        </span>
+                                        <span className="text-sm text-gray-400">Unlimited</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-2xl font-bold text-white tabular-nums">
+                                            {typeof user?.rtmpQuota === "number" ? (
+                                                user.rtmpQuota
+                                            ) : (
+                                                <span className="opacity-50">0</span>
+                                            )}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                            streams available
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
                         {/* Watermark */}

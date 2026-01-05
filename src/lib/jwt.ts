@@ -1,6 +1,7 @@
+import nodeProcess from "node:process";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = globalThis.process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = nodeProcess.env.JWT_SECRET || "your-secret-key";
 
 export interface JwtPayload {
     userId: string;

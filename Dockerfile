@@ -39,8 +39,8 @@ COPY --from=builder /app/node_modules/.pnpm/@prisma+client*/node_modules/.prisma
 # Copy public folder if exists
 COPY --from=builder /app/public ./public
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create cache directory for videos and database
+RUN mkdir -p cache/video
 RUN chown -R nextjs:nodejs /app
 
 USER nextjs

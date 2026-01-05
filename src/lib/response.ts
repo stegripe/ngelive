@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-// Helper function to serialize BigInt
 const serializeBigInt = (obj: unknown): unknown => {
     return JSON.parse(
         JSON.stringify(obj, (_key, value) => (typeof value === "bigint" ? Number(value) : value)),

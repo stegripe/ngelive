@@ -1,15 +1,17 @@
 import fs from "node:fs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import { startFFmpegStream } from "@/lib/ffmpeg";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
+
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// POST /api/rtmp/[id]/start - Start streaming
 export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -37,7 +39,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("RTMP stream not found", 404);
         }
 
-        if (!stream.playlistMode || !["LOOP", "ONCE", "SHUFFLE"].includes(stream.playlistMode)) {
+        if (
+            !stream.playlistMode ||
+            !["LOOP", "ONCE", "SHUFFLE", "SHUFFLE_LOOP"].includes(stream.playlistMode)
+        ) {
             stream.playlistMode = "LOOP";
         }
 
@@ -45,7 +50,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("Stream is already running", 400);
         }
 
-        // AUTO-ACTIVATE STREAM IF NOT ACTIVE
         if (!stream.isActive) {
             await prisma.rtmpStream.update({
                 where: { id },
@@ -58,21 +62,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return sendError("No videos assigned to this stream", 400);
         }
 
-        // Check all video files exist
         for (const sv of stream.streamVideos) {
             if (!sv.video.path || !fs.existsSync(sv.video.path)) {
                 return sendError(`Video file not found: ${sv.video.path}`, 400);
             }
         }
 
-        // Start FFmpeg process
         const success = await startFFmpegStream(stream);
 
         if (!success) {
             return sendError("Failed to start stream: FFmpeg error", 500);
         }
 
-        // Update stream status
         await prisma.rtmpStream.update({
             where: { id },
             data: {
@@ -81,7 +82,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Log start
         await prisma.streamLog.create({
             data: {
                 streamId: id,
@@ -89,6 +89,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 message: `Stream started by ${authUser!.email}`,
             },
         });
+
+        eventEmitter.emit("stream:started", { streamId: id });
 
         return sendSuccess({ message: "Stream started successfully" }, "Stream started");
     } catch (error) {

@@ -8,7 +8,6 @@ const api = axios.create({
     },
 });
 
-// Request interceptor
 api.interceptors.request.use(
     (config) => {
         if (typeof window !== "undefined") {
@@ -24,7 +23,6 @@ api.interceptors.request.use(
     },
 );
 
-// Response interceptor
 api.interceptors.response.use(
     (response) => response,
     (error) => {

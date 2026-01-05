@@ -8,11 +8,11 @@ import { RtmpCard } from "@/components/rtmp/rtmp-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { useStreams } from "@/hooks/useStreams";
 import { useAuth } from "@/lib/auth-context";
 import { type RtmpStream } from "@/types";
 
-// Use RtmpStream instead of defining a local Stream interface
 type Stream = RtmpStream;
 
 export default function RtmpPage() {
@@ -27,19 +27,14 @@ export default function RtmpPage() {
     );
 
     const activeStreams = streams.filter((s: Stream) => s.isStreaming).length;
-    const canCreateMore = (user?.rtmpQuota || 0) > streams.length;
+    const isUnlimited = user?.rtmpQuota === -1 || user?.role === "ADMIN";
+    const canCreateMore = isUnlimited || (user?.rtmpQuota || 0) > streams.length;
 
     if (isLoading) {
         return (
             <LayoutWrapper>
                 <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="relative">
-                            <div className="w-12 h-12 border-4 border-gray-700 rounded-full" />
-                            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                        </div>
-                        <p className="mt-4 text-gray-400">Loading streams...</p>
-                    </div>
+                    <LoadingSpinner message="Loading streams..." />
                 </div>
             </LayoutWrapper>
         );
@@ -117,7 +112,11 @@ export default function RtmpPage() {
                             <div>
                                 <p className="text-xs text-gray-500">Quota Used</p>
                                 <p className="text-xl font-bold text-white">
-                                    {streams.length}/{user?.rtmpQuota || 0}
+                                    {isUnlimited ? (
+                                        <span className="text-yellow-400">Unlimited</span>
+                                    ) : (
+                                        `${streams.length}/${user?.rtmpQuota || 0}`
+                                    )}
                                 </p>
                             </div>
                         </div>

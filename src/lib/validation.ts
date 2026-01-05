@@ -1,3 +1,5 @@
+import nodeProcess from "node:process";
+
 export const validateRequired = (data: Record<string, unknown>, fields: string[]): string[] => {
     const errors: string[] = [];
 
@@ -21,7 +23,7 @@ export const validateEmail = (email: string): boolean => {
 export const validateVideoFile = (filename: string, size: number): string[] => {
     const errors: string[] = [];
     const allowedTypes = [".mp4", ".avi", ".mkv", ".mov", ".wmv"];
-    const maxSize = Number(globalThis.process.env.MAX_FILE_SIZE) || 2147483648; // 2GB
+    const maxSize = Number(nodeProcess.env.MAX_FILE_SIZE) || 2147483648;
 
     const fileExtension = filename.toLowerCase().substring(filename.lastIndexOf("."));
     if (!allowedTypes.includes(fileExtension)) {

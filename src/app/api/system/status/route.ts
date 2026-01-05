@@ -1,18 +1,29 @@
 import { type NextRequest } from "next/server";
-import { getAuthUser, requireAdmin } from "@/lib/auth";
-import { getSystemStatus, setQualityPreset } from "@/lib/ffmpeg";
+import { getAuthUser, requireAdmin, requireAuth } from "@/lib/auth";
+import { getSystemStatus, restorePreviousStreams, setQualityPreset } from "@/lib/ffmpeg";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// GET /api/system/status - Get system status (Admin only)
+export const dynamic = "force-dynamic";
+
+let streamsRestored = false;
+
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
-        const authError = requireAdmin(authUser);
+        const authError = requireAuth(authUser);
         if (authError) {
             return authError;
         }
 
-        const status = getSystemStatus();
+        if (!streamsRestored) {
+            streamsRestored = true;
+            console.log("[System Status] First API call, restoring streams...");
+            restorePreviousStreams().catch((err) => {
+                console.error("[System Status] Error restoring streams:", err);
+            });
+        }
+
+        const status = await getSystemStatus();
 
         return sendSuccess(
             {
@@ -29,7 +40,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// PUT /api/system/status - Update system settings (Admin only)
 export async function PUT(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -52,7 +62,7 @@ export async function PUT(request: NextRequest) {
             setQualityPreset(quality);
         }
 
-        const status = getSystemStatus();
+        const status = await getSystemStatus();
 
         return sendSuccess(
             {

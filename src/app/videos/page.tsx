@@ -17,6 +17,7 @@ import { LayoutWrapper } from "@/components/layout/wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { UploadVideo } from "@/components/video/upload-video";
 import { VideoPlayer } from "@/components/video/video-player";
 import { api } from "@/lib/api-client";
@@ -67,7 +68,6 @@ export default function VideosPage() {
         video.originalName.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
-    // Get page title and description based on user role
     const getPageInfo = () => {
         if (user?.role === "ADMIN") {
             return {
@@ -87,13 +87,7 @@ export default function VideosPage() {
         return (
             <LayoutWrapper>
                 <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="relative">
-                            <div className="w-12 h-12 border-4 border-gray-700 rounded-full" />
-                            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                        </div>
-                        <p className="mt-4 text-gray-400">Loading videos...</p>
-                    </div>
+                    <LoadingSpinner message="Loading videos..." />
                 </div>
             </LayoutWrapper>
         );

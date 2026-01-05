@@ -57,14 +57,16 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
     const [searchTerm, setSearchTerm] = useState("");
     const [streamVideos, setStreamVideos] = useState<StreamVideo[]>([]);
 
-    // Stream info form
-    const [streamInfo, setStreamInfo] = useState({
+    const [streamInfo, setStreamInfo] = useState<{
+        name: string;
+        rtmpUrl: string;
+        playlistMode: string;
+    }>({
         name: "",
         rtmpUrl: "",
         playlistMode: "LOOP",
     });
 
-    // React Query hooks
     const { data: availableVideos = [] } = useVideos();
     const updateStreamMutation = useUpdateStream();
     const addVideoMutation = useAddVideoToStream();
@@ -83,7 +85,6 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
     }, [isOpen, stream]);
 
     const handleClose = () => {
-        // Clear any stream-related toasts when closing modal
         toastManager.clear();
         onClose();
     };
@@ -119,10 +120,12 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
 
         [newVideos[index], newVideos[targetIndex]] = [newVideos[targetIndex], newVideos[index]];
 
+        setStreamVideos(newVideos);
+
         reorderVideosMutation.mutate({
             streamId: stream.id,
             videoOrders: newVideos.map((sv, idx) => ({
-                videoId: sv.id,
+                id: sv.id,
                 order: idx,
             })),
         });
@@ -250,6 +253,7 @@ export function RtmpSettings({ isOpen, onClose, stream, onUpdate }: RtmpSettings
                                         <option value="LOOP">Loop</option>
                                         <option value="ONCE">Play Once</option>
                                         <option value="SHUFFLE">Shuffle</option>
+                                        <option value="SHUFFLE_LOOP">Shuffle + Loop</option>
                                     </select>
                                 </div>
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { type RtmpStream } from "@/types";
 import { RtmpSettings } from "./rtmp-settings";
@@ -15,6 +16,7 @@ interface RtmpCardProps {
 }
 
 export function RtmpCard({ stream, onUpdate }: RtmpCardProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
 
@@ -106,6 +108,9 @@ export function RtmpCard({ stream, onUpdate }: RtmpCardProps) {
                         <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 bg-gray-800/50 px-2 py-1 rounded">
                             <User className="h-3 w-3" />
                             {stream.user?.username}
+                            {stream.user?.id === user?.id && (
+                                <span className="text-primary-400">(You)</span>
+                            )}
                         </span>
                     </div>
 

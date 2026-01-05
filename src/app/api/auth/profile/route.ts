@@ -4,7 +4,8 @@ import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
-// GET /api/auth/profile
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -44,7 +45,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// PUT /api/auth/profile
 export async function PUT(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);

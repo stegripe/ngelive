@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 .next/
+tsconfig.tsbuildinfo
 
 # Environment files
 .env
@@ -22,8 +23,8 @@ build/
 logs/
 *.log
 
-# Uploads
-uploads/
+# Cache (videos & database)
+cache/
 
 # OS files
 .DS_Store
@@ -36,6 +37,6 @@ Thumbs.db
 *.swo
 
 # Misc
-.cache/
 .temp/
 .tmp/
+package-lock.json

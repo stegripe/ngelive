@@ -36,7 +36,6 @@ export function UploadVideo({ isOpen, onClose, onSuccess }: UploadVideoProps) {
         setError(null);
         setProgress(0);
 
-        // Create abort controller
         abortControllerRef.current = new AbortController();
 
         try {
@@ -45,10 +44,8 @@ export function UploadVideo({ isOpen, onClose, onSuccess }: UploadVideoProps) {
 
             const token = localStorage.getItem("token");
 
-            // Use XMLHttpRequest for progress tracking
             const xhr = new XMLHttpRequest();
 
-            // Track upload progress
             xhr.upload.addEventListener("progress", (e) => {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded * 100) / e.total);
@@ -56,7 +53,6 @@ export function UploadVideo({ isOpen, onClose, onSuccess }: UploadVideoProps) {
                 }
             });
 
-            // Handle completion
             xhr.addEventListener("load", () => {
                 if (xhr.status === 201) {
                     const result = JSON.parse(xhr.responseText);
@@ -73,24 +69,20 @@ export function UploadVideo({ isOpen, onClose, onSuccess }: UploadVideoProps) {
                 setUploading(false);
             });
 
-            // Handle errors
             xhr.addEventListener("error", () => {
                 setError("Upload failed. Please try again.");
                 setUploading(false);
             });
 
-            // Handle abort
             xhr.addEventListener("abort", () => {
                 setError("Upload cancelled.");
                 setUploading(false);
             });
 
-            // Setup and send request - use relative URL
             xhr.open("POST", "/api/videos");
             xhr.setRequestHeader("Authorization", `Bearer ${token}`);
             xhr.send(formData);
 
-            // Store xhr for cancellation
             abortControllerRef.current.signal.addEventListener("abort", () => {
                 xhr.abort();
             });

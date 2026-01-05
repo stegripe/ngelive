@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 
@@ -8,7 +9,6 @@ interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// GET /api/videos/[id] - Get video by ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -36,7 +36,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             return sendError("Video not found", 404);
         }
 
-        // Check if user can access this video
         if (authUser!.role !== "ADMIN" && video.userId !== authUser!.userId) {
             return sendError("Unauthorized to access this video", 403);
         }
@@ -48,7 +47,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-// DELETE /api/videos/[id] - Delete video
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const authUser = await getAuthUser(request);
@@ -67,12 +65,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             return sendError("Video not found", 404);
         }
 
-        // Check permission: owner or admin
         if (video.userId !== authUser!.userId && authUser!.role !== "ADMIN") {
             return sendError("Unauthorized to delete this video", 403);
         }
 
-        // Delete file
         try {
             if (fs.existsSync(video.path)) {
                 fs.unlinkSync(video.path);
@@ -81,10 +77,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             console.error("Error deleting file:", fileError);
         }
 
-        // Delete from database
         await prisma.video.delete({
             where: { id },
         });
+
+        eventEmitter.emit("video:deleted", { videoId: id });
 
         return sendSuccess(null, "Video deleted successfully");
     } catch (error) {

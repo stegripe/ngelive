@@ -2,32 +2,106 @@
 
 **Production-Ready RTMP Live Stream Manager**
 
+A modern web-based platform for managing RTMP live streams with video playlist management, user authentication, and admin controls. Built with Next.js, TypeScript, Prisma, and SQLite.
+
 ---
 
-## 🚀 Deploy (Docker Compose)
+## 🚀 Features
 
-1. Copy & edit `.env` dari `.env.example` sesuai kebutuhan.
-2. Jalankan:
+- **Live Streaming**: Stream to any RTMP endpoint (YouTube, Twitch, etc.)
+- **Video Library**: Upload and manage video playlists
+- **User Management**: Role-based access control (Admin/User)
+- **Real-time Updates**: Live UI updates via Server-Sent Events (SSE)
+- **Responsive Design**: Works on desktop and mobile
+- **SQLite Database**: Lightweight, no external database required
+
+---
+
+## 🛠️ Quick Start
+
+### Using Docker (Recommended)
+
+1. Clone and configure:
+   ```bash
+   git clone https://github.com/stegripe/ngelive.git
+   cd ngelive
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+
+2. Start the application:
    ```bash
    docker compose up -d --build
    docker compose exec app pnpm db:push
    docker compose exec app pnpm db:seed
    ```
-3. Akses: http://localhost:3000 (atau IP server)
+
+3. Access: http://localhost:3000
+
+### Manual Installation
+
+1. Prerequisites:
+   - Node.js 20+
+   - pnpm
+   - FFmpeg (for streaming)
+
+2. Install and run:
+   ```bash
+   pnpm install
+   pnpm db:push
+   pnpm db:seed
+   pnpm dev
+   ```
 
 ---
 
-## ⚙️ Konfigurasi Penting (.env)
-- Semua variabel sudah ada di `.env.example` (DB, JWT, admin, upload, dsb)
-- **Ganti JWT_SECRET & password admin sebelum production!**
+## ⚙️ Configuration (.env)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `JWT_SECRET` | Secret for JWT tokens | (required) |
+| `ADMIN_EMAIL` | Initial admin email | `admin@stegripe.org` |
+| `ADMIN_PASSWORD` | Initial admin password | `admin123` |
+| `MAX_FILE_SIZE` | Max upload size (bytes) | `2147483648` (2GB) |
+
+> ⚠️ **Important**: Change `JWT_SECRET` and `ADMIN_PASSWORD` before production!
 
 ---
 
-## 🛠️ Troubleshooting
-- Login gagal? Pastikan DB sudah up, migrasi & seed otomatis saat build.
-- Ulang setup: `docker compose down -v && docker compose up -d --build`
-- Cek log: `docker compose logs -f`
+## 👤 Default Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@stegripe.org | admin123 |
+| User | user@stegripe.org | user123 |
 
 ---
 
-MIT License | Stegripe Development
+## 🔧 Troubleshooting
+
+- **Login failed?** Ensure database is initialized (`pnpm db:push && pnpm db:seed`)
+- **Reset everything**: `docker compose down -v && docker compose up -d --build`
+- **Check logs**: `docker compose logs -f app`
+
+---
+
+## 📁 Project Structure
+
+```
+ngelive/
+├── prisma/          # Database schema and migrations
+├── src/
+│   ├── app/         # Next.js App Router pages
+│   ├── components/  # React components
+│   ├── hooks/       # Custom React hooks
+│   ├── lib/         # Utilities and services
+│   └── types/       # TypeScript types
+├── cache/           # Data storage (auto-created)
+│   ├── data.db      # SQLite database
+│   └── video/       # Uploaded video files
+└── docker-compose.yaml
+```
+
+---
+
+MIT License | [Stegripe Development](https://stegripe.org)

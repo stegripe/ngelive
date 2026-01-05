@@ -1,24 +1,30 @@
 import { type ChildProcess, execSync, spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
 import nodeProcess from "node:process";
-import { clearTimeout, setTimeout } from "node:timers";
+import { setInterval, setTimeout } from "node:timers";
 import prisma from "./prisma";
+import { startVideoMonitor } from "./video-monitor";
 
-// ============================================================================
-// FFmpeg Service - Optimized for Low-Spec Servers (1 vCPU / 1GB RAM)
-// ============================================================================
+const FFMPEG_VERBOSE = nodeProcess.env.FFMPEG_VERBOSE === "true";
 
-// Store running FFmpeg processes with metadata
-interface StreamProcess {
-    process: ChildProcess;
+interface StreamState {
+    process: ChildProcess | null;
     startTime: Date;
     videoIndex: number;
+    videoPaths: string[];
+    rtmpUrl: string;
+    playlistMode: string;
+    isRunning: boolean;
     retryCount: number;
     lastError?: string;
+    lastActivityTime: number;
 }
 
-const runningStreams: Map<string, StreamProcess> = new Map();
+const runningStreams: Map<string, StreamState> = new Map();
+const manuallyStoppingStreams: Set<string> = new Set();
+const MAX_RETRY_ATTEMPTS = 10;
 
-// Quality preset types
 interface QualityPreset {
     resolution: string;
     videoBitrate: string;
@@ -27,81 +33,59 @@ interface QualityPreset {
     preset: string;
     audioBitrate: string;
     audioSampleRate: string;
-    threads: number;
-    crf: string;
+    gopSize: number;
 }
 
 type QualityLevel = "ultralow" | "low" | "medium" | "high";
 
-// Quality presets
 const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
-    // Ultra-low spec: 1 vCPU, 512MB RAM
     ultralow: {
-        resolution: "854x480",
-        videoBitrate: "800k",
-        maxrate: "1000k",
-        bufsize: "1500k",
+        resolution: "854:480",
+        videoBitrate: "1000k",
+        maxrate: "1500k",
+        bufsize: "2000k",
         preset: "ultrafast",
         audioBitrate: "96k",
         audioSampleRate: "44100",
-        threads: 1,
-        crf: "28",
+        gopSize: 60,
     },
-    // Low spec: 1 vCPU, 1GB RAM (DEFAULT)
     low: {
-        resolution: "1280x720",
-        videoBitrate: "1500k",
-        maxrate: "2000k",
-        bufsize: "3000k",
+        resolution: "1280:720",
+        videoBitrate: "2500k",
+        maxrate: "3000k",
+        bufsize: "5000k",
         preset: "superfast",
         audioBitrate: "128k",
         audioSampleRate: "44100",
-        threads: 1,
-        crf: "25",
+        gopSize: 60,
     },
-    // Medium spec: 2 vCPU, 2GB RAM
     medium: {
-        resolution: "1280x720",
-        videoBitrate: "2500k",
-        maxrate: "3000k",
-        bufsize: "4500k",
-        preset: "veryfast",
+        resolution: "1920:1080",
+        videoBitrate: "4000k",
+        maxrate: "5000k",
+        bufsize: "8000k",
+        preset: "superfast",
         audioBitrate: "128k",
         audioSampleRate: "44100",
-        threads: 2,
-        crf: "23",
+        gopSize: 120,
     },
-    // High spec: 4+ vCPU, 4GB+ RAM
     high: {
-        resolution: "1920x1080",
-        videoBitrate: "4500k",
-        maxrate: "5000k",
-        bufsize: "7000k",
-        preset: "fast",
-        audioBitrate: "192k",
-        audioSampleRate: "48000",
-        threads: 4,
-        crf: "21",
+        resolution: "1920:1080",
+        videoBitrate: "5000k",
+        maxrate: "6000k",
+        bufsize: "10000k",
+        preset: "superfast",
+        audioBitrate: "128k",
+        audioSampleRate: "44100",
+        gopSize: 120,
     },
 };
 
-// Configuration - Optimized for 1 vCPU / 1GB RAM
 const CONFIG = {
-    // Maximum concurrent streams (adjust based on server capacity)
-    MAX_CONCURRENT_STREAMS: 2,
-
-    // FFmpeg process limits
-    MAX_RETRY_COUNT: 3,
-    RETRY_DELAY_MS: 5000,
-
-    // Memory management
-    FFMPEG_NICE_PRIORITY: 10, // Lower priority (higher nice value)
-
-    // Current quality setting - change based on server specs
-    CURRENT_QUALITY: "low" as QualityLevel,
+    MAX_CONCURRENT_STREAMS: 50,
+    CURRENT_QUALITY: "high" as QualityLevel,
 };
 
-// Get current quality preset
 const getQualityPreset = (): QualityPreset => QUALITY_PRESETS[CONFIG.CURRENT_QUALITY];
 
 export interface FFmpegStream {
@@ -115,7 +99,6 @@ export interface FFmpegStreamVideo {
     video: { path: string; filename: string };
 }
 
-// Check if FFmpeg is available
 const checkFFmpegAvailable = (): boolean => {
     try {
         execSync("ffmpeg -version", { stdio: "ignore" });
@@ -125,362 +108,279 @@ const checkFFmpegAvailable = (): boolean => {
     }
 };
 
-// Get system memory info (simplified)
 const getAvailableMemoryMB = (): number => {
     try {
-        if (nodeProcess.platform === "win32") {
-            const output = execSync("wmic OS get FreePhysicalMemory /Value", { encoding: "utf-8" });
-            const match = output.match(/FreePhysicalMemory=(\d+)/);
-            return match ? Math.floor(Number.parseInt(match[1], 10) / 1024) : 512;
-        }
-        const output = execSync("free -m | grep Mem | awk '{print $7}'", { encoding: "utf-8" });
-        return Number.parseInt(output.trim(), 10) || 512;
+        const freeBytes = os.freemem();
+        return Math.floor(freeBytes / 1024 / 1024);
     } catch {
-        return 512; // Default assumption
+        return 512;
     }
 };
 
-// Build optimized FFmpeg arguments
-const buildFFmpegArgs = (inputFile: string, rtmpUrl: string): string[] => {
+const buildFFmpegArgsForVideo = (videoPath: string, rtmpUrl: string): string[] => {
     const preset = getQualityPreset();
-    const [width, height] = preset.resolution.split("x");
 
     return [
-        // Input options
-        "-re", // Real-time mode
-        "-stream_loop",
-        "-1", // Loop input (handled internally by ffmpeg)
+        "-re",
         "-i",
-        inputFile,
-
-        // Video filters - scale with hardware acceleration fallback
+        videoPath,
         "-vf",
-        `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p`,
-
-        // Video codec settings - OPTIMIZED for low CPU
+        `scale=${preset.resolution}`,
         "-c:v",
         "libx264",
         "-preset",
-        preset.preset, // ultrafast/superfast for low CPU
+        preset.preset,
         "-tune",
-        "zerolatency", // Minimize latency
-        "-profile:v",
-        "baseline", // Baseline for compatibility & lower CPU
-        "-level",
-        "3.1", // Compatible level
-        "-crf",
-        preset.crf, // Quality-based encoding
+        "zerolatency",
         "-b:v",
         preset.videoBitrate,
         "-maxrate",
         preset.maxrate,
         "-bufsize",
         preset.bufsize,
-
-        // Keyframe settings - longer GOP for efficiency
+        "-pix_fmt",
+        "yuv420p",
         "-g",
-        "120", // Keyframe every 4 seconds at 30fps
-        "-keyint_min",
-        "60",
-        "-sc_threshold",
-        "0", // Disable scene change detection
-
-        // Frame rate control
-        "-r",
-        "30", // Lock to 30fps
-        "-fps_mode",
-        "cfr", // Constant frame rate
-
-        // Audio settings - OPTIMIZED
+        preset.gopSize.toString(),
         "-c:a",
         "aac",
         "-b:a",
         preset.audioBitrate,
         "-ar",
         preset.audioSampleRate,
-        "-ac",
-        "2", // Stereo
-
-        // Threading - controlled
-        "-threads",
-        String(preset.threads),
-        "-thread_type",
-        "slice", // Slice-based threading (less memory)
-
-        // Buffer and stability settings
-        "-max_muxing_queue_size",
-        "512", // Reduced from 1024
-        "-fflags",
-        "+genpts+igndts", // Generate PTS, ignore DTS issues
-        "-avoid_negative_ts",
-        "make_zero",
-
-        // RTMP output settings
-        "-rtmp_buffer",
-        "2048", // Reduced buffer
-        "-rtmp_live",
-        "live",
         "-f",
         "flv",
         rtmpUrl,
     ];
 };
 
-// Build minimal FFmpeg args for copy mode (if source already encoded)
-const buildFFmpegArgsCopyMode = (inputFile: string, rtmpUrl: string): string[] => {
-    return [
-        "-re",
-        "-stream_loop",
-        "-1",
-        "-i",
-        inputFile,
-        "-c",
-        "copy", // Copy without re-encoding (0 CPU!)
-        "-f",
-        "flv",
-        "-flvflags",
-        "no_duration_filesize",
-        rtmpUrl,
-    ];
-};
-
-// Check if video is compatible for copy mode
-const canUseCopyMode = (videoPath: string): boolean => {
+async function updateStreamStatusInDB(streamId: string, isStreaming: boolean): Promise<void> {
     try {
-        // Check if video is already H.264 + AAC in compatible format
-        const output = execSync(
-            `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of csv=p=0 "${videoPath}"`,
-            { encoding: "utf-8" },
-        );
-        const [codec, width] = output.trim().split(",");
-
-        // Only use copy mode if already h264 and reasonable resolution
-        return codec === "h264" && Number.parseInt(width, 10) <= 1920;
-    } catch {
-        return false;
+        await prisma.rtmpStream.update({
+            where: { id: streamId },
+            data: { isStreaming, currentVideo: null },
+        });
+    } catch (e) {
+        console.error("[FFmpeg] Error updating stream status in DB:", e);
     }
-};
+}
 
-// Start FFmpeg stream with optimizations
+function streamSingleVideo(streamId: string): void {
+    const state = runningStreams.get(streamId);
+    if (!state || !state.isRunning) {
+        return;
+    }
+
+    state.lastActivityTime = Date.now();
+
+    if (manuallyStoppingStreams.has(streamId)) {
+        if (FFMPEG_VERBOSE) {
+            console.log(`[FFmpeg] Stream ${streamId} was manually stopped`);
+        }
+        manuallyStoppingStreams.delete(streamId);
+        runningStreams.delete(streamId);
+        return;
+    }
+
+    const videoPath = state.videoPaths[state.videoIndex];
+    const videoFilename = videoPath.split(/[/\\]/).pop() || videoPath;
+
+    if (state.videoIndex === 0 || FFMPEG_VERBOSE) {
+        console.log(`[FFmpeg] Stream ${streamId} - Playing: ${videoFilename}`);
+    }
+
+    const ffmpegArgs = buildFFmpegArgsForVideo(videoPath, state.rtmpUrl);
+
+    if (FFMPEG_VERBOSE) {
+        console.log(`[FFmpeg] Command: ffmpeg ${ffmpegArgs.join(" ")}`);
+    }
+
+    const ffmpegProcess = spawn("ffmpeg", ffmpegArgs, {
+        detached: false,
+        stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    state.process = ffmpegProcess;
+
+    ffmpegProcess.stderr?.on("data", (data) => {
+        const message = data.toString().trim();
+        if (message && FFMPEG_VERBOSE && (message.includes("Error") || message.includes("error"))) {
+            console.error(`[FFmpeg ${streamId}] ${message}`);
+        }
+    });
+
+    ffmpegProcess.on("exit", (code, _signal) => {
+        const currentState = runningStreams.get(streamId);
+
+        if (manuallyStoppingStreams.has(streamId)) {
+            if (FFMPEG_VERBOSE) {
+                console.log(`[FFmpeg] Stream ${streamId} was manually stopped`);
+            }
+            manuallyStoppingStreams.delete(streamId);
+            runningStreams.delete(streamId);
+            updateStreamStatusInDB(streamId, false);
+            return;
+        }
+
+        if (!currentState || !currentState.isRunning) {
+            return;
+        }
+
+        if (code === 0) {
+            if (FFMPEG_VERBOSE) {
+                console.log(`[FFmpeg] Stream ${streamId} - Video completed`);
+            }
+            currentState.retryCount = 0;
+            currentState.lastActivityTime = Date.now();
+
+            currentState.videoIndex++;
+
+            if (currentState.videoIndex >= currentState.videoPaths.length) {
+                const shouldLoop =
+                    currentState.playlistMode === "LOOP" ||
+                    currentState.playlistMode === "SHUFFLE_LOOP";
+
+                if (shouldLoop) {
+                    currentState.videoIndex = 0;
+
+                    if (currentState.playlistMode === "SHUFFLE_LOOP") {
+                        currentState.videoPaths = [...currentState.videoPaths].sort(
+                            () => Math.random() - 0.5,
+                        );
+                    }
+
+                    console.log(`[FFmpeg] Stream ${streamId} - Playlist loop restart`);
+                } else {
+                    console.log(`[FFmpeg] Stream ${streamId} - Playlist completed, stopping`);
+                    currentState.isRunning = false;
+                    runningStreams.delete(streamId);
+                    updateStreamStatusInDB(streamId, false);
+                    return;
+                }
+            }
+
+            setTimeout(() => {
+                streamSingleVideo(streamId);
+            }, 500);
+        } else {
+            if (currentState.retryCount === 0) {
+                console.error(`[FFmpeg] Stream ${streamId} - Error: code=${code}, retrying...`);
+            }
+            currentState.retryCount++;
+
+            if (currentState.retryCount >= MAX_RETRY_ATTEMPTS) {
+                console.error(`[FFmpeg] Stream ${streamId} - Max retries reached, stopping`);
+                currentState.isRunning = false;
+                runningStreams.delete(streamId);
+                updateStreamStatusInDB(streamId, false);
+                return;
+            }
+
+            const backoffMs = Math.min(2000 * 2 ** (currentState.retryCount - 1), 60000);
+            if (FFMPEG_VERBOSE) {
+                console.log(`[FFmpeg] Stream ${streamId} - Retrying in ${backoffMs / 1000}s`);
+            }
+
+            setTimeout(() => {
+                streamSingleVideo(streamId);
+            }, backoffMs);
+        }
+    });
+
+    ffmpegProcess.on("error", (err) => {
+        if (FFMPEG_VERBOSE) {
+            console.error(`[FFmpeg] Stream ${streamId} - Process error:`, err.message);
+        }
+
+        const currentState = runningStreams.get(streamId);
+        if (currentState) {
+            currentState.retryCount++;
+
+            if (currentState.retryCount >= MAX_RETRY_ATTEMPTS) {
+                currentState.isRunning = false;
+                runningStreams.delete(streamId);
+                updateStreamStatusInDB(streamId, false);
+                return;
+            }
+
+            const backoffMs = Math.min(2000 * 2 ** (currentState.retryCount - 1), 60000);
+            setTimeout(() => {
+                streamSingleVideo(streamId);
+            }, backoffMs);
+        }
+    });
+}
+
 export const startFFmpegStream = (stream: FFmpegStream): boolean => {
     try {
-        // Check if already running
         if (runningStreams.has(stream.id)) {
-            console.info(`[FFmpeg] Stream ${stream.id} is already running`);
-            return false;
+            const existingState = runningStreams.get(stream.id);
+            if (existingState?.isRunning) {
+                console.info(`[FFmpeg] Stream ${stream.id} is already running`);
+                return false;
+            }
         }
 
-        // Check concurrent stream limit
-        if (runningStreams.size >= CONFIG.MAX_CONCURRENT_STREAMS) {
-            console.warn(
-                `[FFmpeg] Maximum concurrent streams reached (${CONFIG.MAX_CONCURRENT_STREAMS})`,
-            );
-            return false;
-        }
-
-        // Check FFmpeg availability
         if (!checkFFmpegAvailable()) {
             console.error("[FFmpeg] FFmpeg is not installed or not in PATH");
             return false;
         }
 
-        // Check available memory
         const availableMem = getAvailableMemoryMB();
         if (availableMem < 256) {
             console.warn(`[FFmpeg] Low memory warning: ${availableMem}MB available`);
         }
 
-        const videoFiles = stream.streamVideos.map((sv) => ({
-            path: sv.video.path,
-            filename: sv.video.filename,
-        }));
+        let videoPaths = stream.streamVideos.map((sv) => sv.video.path);
 
-        if (videoFiles.length === 0) {
+        if (videoPaths.length === 0) {
             console.info(`[FFmpeg] No videos found for stream ${stream.id}`);
             return false;
         }
 
-        const loopForever = stream.playlistMode === "LOOP";
-        const shuffleMode = stream.playlistMode === "SHUFFLE";
-
-        // Shuffle videos if needed
-        if (shuffleMode) {
-            for (let i = videoFiles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [videoFiles[i], videoFiles[j]] = [videoFiles[j], videoFiles[i]];
+        for (const videoPath of videoPaths) {
+            if (!fs.existsSync(videoPath)) {
+                console.error(`[FFmpeg] Video file not found: ${videoPath}`);
+                return false;
             }
         }
 
-        // Main streaming loop
-        const runLoop = async () => {
-            let stopRequested = false;
-            let retryCount = 0;
+        const shuffleMode =
+            stream.playlistMode === "SHUFFLE" || stream.playlistMode === "SHUFFLE_LOOP";
+        if (shuffleMode) {
+            videoPaths = [...videoPaths].sort(() => Math.random() - 0.5);
+        }
 
-            do {
-                for (let videoIndex = 0; videoIndex < videoFiles.length; videoIndex++) {
-                    if (stopRequested) {
-                        break;
-                    }
+        console.log(
+            "[FFmpeg] Starting stream " +
+                stream.id +
+                " with " +
+                videoPaths.length +
+                " videos, mode: " +
+                stream.playlistMode,
+        );
 
-                    const currentVideo = videoFiles[videoIndex];
-
-                    // Update current video in database
-                    try {
-                        await prisma.rtmpStream.update({
-                            where: { id: stream.id },
-                            data: { currentVideo: currentVideo.filename },
-                        });
-                    } catch (e) {
-                        console.error(`[FFmpeg] Failed to update current video:`, e);
-                    }
-
-                    // Check if copy mode can be used (saves CPU!)
-                    const useCopyMode = await canUseCopyMode(currentVideo.path);
-
-                    const ffmpegArgs = useCopyMode
-                        ? buildFFmpegArgsCopyMode(currentVideo.path, stream.rtmpUrl)
-                        : buildFFmpegArgs(currentVideo.path, stream.rtmpUrl);
-
-                    console.info(
-                        `[FFmpeg] Starting stream ${stream.id} - Video: ${currentVideo.filename} (Copy mode: ${useCopyMode})`,
-                    );
-
-                    // Spawn FFmpeg with low priority
-                    const ffmpeg = spawn("ffmpeg", ffmpegArgs, {
-                        stdio: ["ignore", "pipe", "pipe"],
-                        // On Windows, can't set nice directly
-                    });
-
-                    // Store process info
-                    runningStreams.set(stream.id, {
-                        process: ffmpeg,
-                        startTime: new Date(),
-                        videoIndex,
-                        retryCount,
-                    });
-
-                    // Handle stdout (usually empty for FFmpeg)
-                    ffmpeg.stdout?.on("data", (_data) => {
-                        // Minimal logging to reduce overhead
-                    });
-
-                    // Handle stderr (FFmpeg logs here)
-                    let lastProgress = "";
-                    ffmpeg.stderr?.on("data", (data) => {
-                        const output = data.toString();
-
-                        // Only log errors and important info
-                        if (output.includes("Error") || output.includes("error")) {
-                            console.error(`[FFmpeg ${stream.id}] ${output.trim()}`);
-                            const streamInfo = runningStreams.get(stream.id);
-                            if (streamInfo) {
-                                streamInfo.lastError = output.trim();
-                            }
-                        }
-
-                        // Log progress occasionally
-                        if (output.includes("frame=") && output !== lastProgress) {
-                            lastProgress = output;
-                            // Uncomment for debug: console.debug(`[FFmpeg ${stream.id}] ${output.trim()}`);
-                        }
-                    });
-
-                    // Wait for process to complete
-                    const exitCode = await new Promise<number | null>((resolve) => {
-                        ffmpeg.on("close", (code) => {
-                            console.info(
-                                `[FFmpeg] Stream ${stream.id} video ended with code ${code}`,
-                            );
-                            resolve(code);
-                        });
-
-                        ffmpeg.on("error", (error) => {
-                            console.error(`[FFmpeg] Stream ${stream.id} error:`, error.message);
-                            resolve(null);
-                        });
-                    });
-
-                    // Check if manually stopped
-                    if (!runningStreams.has(stream.id)) {
-                        stopRequested = true;
-                        break;
-                    }
-
-                    // Handle exit codes
-                    if (exitCode !== 0 && exitCode !== null) {
-                        retryCount++;
-                        const streamInfo = runningStreams.get(stream.id);
-
-                        if (retryCount >= CONFIG.MAX_RETRY_COUNT) {
-                            console.error(
-                                `[FFmpeg] Stream ${stream.id} max retries reached. Stopping.`,
-                            );
-                            stopRequested = true;
-
-                            // Log error to database
-                            await prisma.streamLog.create({
-                                data: {
-                                    streamId: stream.id,
-                                    action: "ERROR",
-                                    message: `Stream stopped after ${retryCount} retries. Last error: ${streamInfo?.lastError || "Unknown"}`,
-                                },
-                            });
-                            break;
-                        }
-
-                        console.warn(
-                            `[FFmpeg] Stream ${stream.id} failed, retry ${retryCount}/${CONFIG.MAX_RETRY_COUNT} in ${CONFIG.RETRY_DELAY_MS}ms`,
-                        );
-                        await new Promise((r) => setTimeout(r, CONFIG.RETRY_DELAY_MS));
-                    } else {
-                        retryCount = 0; // Reset on success
-                    }
-
-                    // Small delay between videos to prevent CPU spike
-                    if (!stopRequested && videoIndex < videoFiles.length - 1) {
-                        await new Promise((r) => setTimeout(r, 1000));
-                    }
-                }
-
-                // Shuffle again for next loop iteration
-                if (shuffleMode && loopForever && !stopRequested) {
-                    for (let i = videoFiles.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [videoFiles[i], videoFiles[j]] = [videoFiles[j], videoFiles[i]];
-                    }
-                }
-            } while (loopForever && !stopRequested);
-
-            // Cleanup
-            runningStreams.delete(stream.id);
-
-            // Update database
-            try {
-                await prisma.rtmpStream.update({
-                    where: { id: stream.id },
-                    data: {
-                        isStreaming: false,
-                        currentVideo: null,
-                    },
-                });
-
-                await prisma.streamLog.create({
-                    data: {
-                        streamId: stream.id,
-                        action: "STOPPED",
-                        message: "Stream completed/stopped",
-                    },
-                });
-            } catch (e) {
-                console.error(`[FFmpeg] Failed to update stream status:`, e);
-            }
+        const state: StreamState = {
+            process: null,
+            startTime: new Date(),
+            videoIndex: 0,
+            videoPaths,
+            rtmpUrl: stream.rtmpUrl,
+            playlistMode: stream.playlistMode,
+            isRunning: true,
+            retryCount: 0,
+            lastActivityTime: Date.now(),
         };
 
-        // Start the loop (non-blocking)
-        runLoop().catch((e) => {
-            console.error(`[FFmpeg] Stream loop error:`, e);
-            runningStreams.delete(stream.id);
-        });
+        runningStreams.set(stream.id, state);
+
+        streamSingleVideo(stream.id);
+
+        try {
+            startVideoMonitor();
+        } catch (e) {
+            void e;
+        }
 
         return true;
     } catch (error) {
@@ -489,65 +389,69 @@ export const startFFmpegStream = (stream: FFmpegStream): boolean => {
     }
 };
 
-// Stop FFmpeg stream gracefully
 export const stopFFmpegStream = async (streamId: string): Promise<void> => {
-    const streamInfo = runningStreams.get(streamId);
+    const state = runningStreams.get(streamId);
 
-    if (streamInfo) {
-        const { process: ffmpeg } = streamInfo;
-
-        // First try graceful quit
-        ffmpeg.stdin?.write("q");
-
-        // Give it 3 seconds to quit gracefully
-        await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
-                // Force kill if still running
-                if (!ffmpeg.killed) {
-                    console.warn(`[FFmpeg] Force killing stream ${streamId}`);
-                    ffmpeg.kill("SIGKILL");
-                }
-                resolve();
-            }, 3000);
-
-            ffmpeg.on("close", () => {
-                clearTimeout(timeout);
-                resolve();
-            });
-        });
-
-        runningStreams.delete(streamId);
-        console.info(`[FFmpeg] Stream ${streamId} stopped`);
+    if (FFMPEG_VERBOSE) {
+        console.log(`[FFmpeg] Stop request for stream ${streamId}`);
     }
+
+    if (!state) {
+        try {
+            const stream = await prisma.rtmpStream.findUnique({ where: { id: streamId } });
+            if (stream?.isStreaming) {
+                if (FFMPEG_VERBOSE) {
+                    console.log(`[FFmpeg] Stream ${streamId} not in memory, fixing DB status`);
+                }
+                await updateStreamStatusInDB(streamId, false);
+            }
+        } catch (e) {
+            console.error("[FFmpeg] Error checking stream status:", e);
+        }
+        return;
+    }
+
+    manuallyStoppingStreams.add(streamId);
+    state.isRunning = false;
+
+    if (state.process && typeof state.process.kill === "function") {
+        try {
+            state.process.kill("SIGTERM");
+        } catch (e) {
+            console.error("[FFmpeg] Error terminating process:", e);
+        }
+    }
+
+    runningStreams.delete(streamId);
+    await updateStreamStatusInDB(streamId, false);
+
+    console.log(`[FFmpeg] Stream ${streamId} stopped`);
 };
 
-// Get list of running stream IDs
 export const getRunningStreams = (): string[] => {
-    return Array.from(runningStreams.keys());
+    return Array.from(runningStreams.keys()).filter((id) => {
+        const state = runningStreams.get(id);
+        return state?.isRunning === true;
+    });
 };
 
-// Get detailed info about running streams
-export const getStreamInfo = (streamId: string): StreamProcess | undefined => {
+export const getStreamInfo = (streamId: string): StreamState | undefined => {
     return runningStreams.get(streamId);
 };
 
-// Get all streams info
-export const getAllStreamsInfo = (): Map<string, StreamProcess> => {
+export const getAllStreamsInfo = (): Map<string, StreamState> => {
     return runningStreams;
 };
 
-// Update quality preset at runtime
 export const setQualityPreset = (preset: QualityLevel): void => {
     CONFIG.CURRENT_QUALITY = preset;
     console.info(`[FFmpeg] Quality preset changed to: ${preset}`);
 };
 
-// Get current quality preset name
 export const getCurrentQuality = (): string => {
     return CONFIG.CURRENT_QUALITY;
 };
 
-// Stop all streams (for cleanup)
 export const stopAllStreams = async (): Promise<void> => {
     const streamIds = Array.from(runningStreams.keys());
     console.info(`[FFmpeg] Stopping all streams (${streamIds.length} active)`);
@@ -555,13 +459,202 @@ export const stopAllStreams = async (): Promise<void> => {
     await Promise.all(streamIds.map((id) => stopFFmpegStream(id)));
 };
 
-// Check system resources
-export const getSystemStatus = () => {
+export const getSystemStatus = async () => {
+    const activeCount = Array.from(runningStreams.values()).filter((s) => s.isRunning).length;
+
+    let totalStreams = 0;
+    try {
+        totalStreams = await prisma.rtmpStream.count();
+    } catch (e) {
+        void e;
+    }
+
     return {
-        activeStreams: runningStreams.size,
-        maxStreams: CONFIG.MAX_CONCURRENT_STREAMS,
+        activeStreams: activeCount,
+        maxStreams: totalStreams,
         availableMemoryMB: getAvailableMemoryMB(),
         currentQuality: CONFIG.CURRENT_QUALITY,
         ffmpegAvailable: checkFFmpegAvailable(),
     };
 };
+
+export const syncStreamStatuses = async (): Promise<void> => {
+    try {
+        let changesDetected = false;
+        const now = Date.now();
+        const ACTIVITY_TIMEOUT_MS = 30000;
+
+        const liveStreams = await prisma.rtmpStream.findMany({
+            where: { isStreaming: true },
+        });
+
+        for (const stream of liveStreams) {
+            const state = runningStreams.get(stream.id);
+
+            const hasRecentActivity = state && now - state.lastActivityTime < ACTIVITY_TIMEOUT_MS;
+            const isReallyActive = state?.isRunning === true && hasRecentActivity;
+
+            if (!isReallyActive && state?.isRunning !== true) {
+                if (FFMPEG_VERBOSE) {
+                    console.log(`[FFmpeg] Fixing inconsistent stream ${stream.id}`);
+                }
+                await prisma.rtmpStream.update({
+                    where: { id: stream.id },
+                    data: { isStreaming: false, currentVideo: null },
+                });
+                changesDetected = true;
+            }
+        }
+
+        for (const [streamId, state] of runningStreams.entries()) {
+            if (!state.isRunning) {
+                runningStreams.delete(streamId);
+                changesDetected = true;
+            }
+        }
+
+        if (FFMPEG_VERBOSE || changesDetected) {
+            const activeCount = Array.from(runningStreams.values()).filter(
+                (s) => s.isRunning,
+            ).length;
+            console.log(`[FFmpeg] Stream status sync completed. Active streams: ${activeCount}`);
+        }
+    } catch (error) {
+        console.error("[FFmpeg] Error syncing stream statuses:", error);
+    }
+};
+
+setInterval(syncStreamStatuses, 5 * 60 * 1000);
+
+export async function restorePreviousStreams(): Promise<void> {
+    try {
+        const streamsToRestore = await prisma.rtmpStream.findMany({
+            where: { isStreaming: true },
+            include: {
+                streamVideos: {
+                    include: { video: true },
+                    orderBy: { order: "asc" },
+                },
+            },
+        });
+
+        if (streamsToRestore.length === 0) {
+            return;
+        }
+
+        console.log(
+            `[FFmpeg] Restoring ${streamsToRestore.length} streams from previous session...`,
+        );
+
+        for (const stream of streamsToRestore) {
+            try {
+                if (runningStreams.has(stream.id)) {
+                    continue;
+                }
+
+                if (stream.streamVideos.length === 0) {
+                    console.log(`[FFmpeg] Stream ${stream.id} has no videos, marking offline`);
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                    continue;
+                }
+
+                let allVideosExist = true;
+                for (const sv of stream.streamVideos) {
+                    if (!sv.video.path || !fs.existsSync(sv.video.path)) {
+                        console.log(
+                            "[FFmpeg] Stream " +
+                                stream.id +
+                                " - video file missing: " +
+                                sv.video.path,
+                        );
+                        allVideosExist = false;
+                        break;
+                    }
+                }
+
+                if (!allVideosExist) {
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                    continue;
+                }
+
+                const playlistMode = stream.playlistMode || "LOOP";
+
+                const success = startFFmpegStream({
+                    id: stream.id,
+                    streamVideos: stream.streamVideos,
+                    playlistMode,
+                    rtmpUrl: stream.rtmpUrl,
+                });
+
+                if (success) {
+                    console.log(`[FFmpeg] Restored stream: ${stream.id}`);
+                } else {
+                    console.log(`[FFmpeg] Failed to restore stream: ${stream.id}`);
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            } catch (error) {
+                console.error(`[FFmpeg] Error restoring stream ${stream.id}:`, error);
+                try {
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                } catch (e) {
+                    void e;
+                }
+            }
+        }
+
+        console.log("[FFmpeg] Stream restoration complete");
+    } catch (error) {
+        console.error("[FFmpeg] Error restoring streams:", error);
+    }
+}
+
+function cleanupOnExit(): void {
+    console.log("[FFmpeg] Cleaning up all streams before exit...");
+
+    for (const [streamId, state] of runningStreams.entries()) {
+        if (state.process && typeof state.process.kill === "function") {
+            try {
+                state.process.kill("SIGKILL");
+            } catch (e) {
+                void e;
+            }
+        }
+        runningStreams.delete(streamId);
+    }
+
+    manuallyStoppingStreams.clear();
+}
+
+nodeProcess.on("exit", cleanupOnExit);
+nodeProcess.on("SIGINT", () => {
+    cleanupOnExit();
+    nodeProcess.exit(0);
+});
+nodeProcess.on("SIGTERM", () => {
+    cleanupOnExit();
+    nodeProcess.exit(0);
+});
+nodeProcess.on("SIGHUP", () => {
+    cleanupOnExit();
+    nodeProcess.exit(0);
+});
+
+nodeProcess.on("uncaughtException", (err) => {
+    console.error("[FFmpeg] Uncaught exception, cleaning up:", err);
+    cleanupOnExit();
+    nodeProcess.exit(1);
+});

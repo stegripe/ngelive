@@ -1,11 +1,13 @@
 import { type NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import eventEmitter from "@/lib/event-emitter";
 import prisma from "@/lib/prisma";
 import { sendError, sendSuccess } from "@/lib/response";
 import { generateStreamKey } from "@/lib/rtmp";
 import { validateRequired } from "@/lib/validation";
 
-// GET /api/rtmp - List RTMP streams
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -86,7 +88,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST /api/rtmp - Create RTMP stream
 export async function POST(request: NextRequest) {
     try {
         const authUser = await getAuthUser(request);
@@ -103,7 +104,6 @@ export async function POST(request: NextRequest) {
             return sendError(validationErrors.join(", "), 400);
         }
 
-        // Check user's RTMP quota
         const user = await prisma.user.findUnique({
             where: { id: authUser!.userId },
             select: {
@@ -118,7 +118,11 @@ export async function POST(request: NextRequest) {
             return sendError("User not found", 404);
         }
 
-        if (user._count.rtmpStreams >= user.rtmpQuota) {
+        if (
+            typeof user.rtmpQuota === "number" &&
+            user.rtmpQuota >= 0 &&
+            user._count.rtmpStreams >= user.rtmpQuota
+        ) {
             return sendError(
                 `RTMP quota exceeded. You can only create ${user.rtmpQuota} streams`,
                 400,
@@ -147,7 +151,6 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        // Log creation
         await prisma.streamLog.create({
             data: {
                 streamId: stream.id,
@@ -155,6 +158,8 @@ export async function POST(request: NextRequest) {
                 message: `Stream "${name}" created by ${authUser!.email}`,
             },
         });
+
+        eventEmitter.emit("stream:created", { stream });
 
         return sendSuccess({ stream }, "RTMP stream created successfully", 201);
     } catch (error) {
