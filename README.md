@@ -60,7 +60,7 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `JWT_SECRET` | Secret for JWT tokens | (required) |
-| `ADMIN_EMAIL` | Initial admin email | `admin@stegripe.org` |
+| `ADMIN_EMAIL` | Initial admin email | `admin@ngelive.stegripe.org` |
 | `ADMIN_PASSWORD` | Initial admin password | `admin123` |
 | `MAX_FILE_SIZE` | Max upload size (bytes) | `2147483648` (2GB) |
 
@@ -72,8 +72,8 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@stegripe.org | admin123 |
-| User | user@stegripe.org | user123 |
+| Admin | admin@ngelive.stegripe.org | admin123 |
+| User | user@ngelive.stegripe.org | user123 |
 
 ---
 

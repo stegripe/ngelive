@@ -130,12 +130,12 @@ export default function LoginPage() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                             <p className="text-primary-400 font-medium mb-1">Admin</p>
-                            <p className="text-gray-400">admin@stegripe.org</p>
+                            <p className="text-gray-400">admin@ngelive.stegripe.org</p>
                             <p className="text-gray-500">admin123</p>
                         </div>
                         <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                             <p className="text-gray-300 font-medium mb-1">User</p>
-                            <p className="text-gray-400">user@stegripe.org</p>
+                            <p className="text-gray-400">user@ngelive.stegripe.org</p>
                             <p className="text-gray-500">user123</p>
                         </div>
                     </div>
