@@ -105,7 +105,7 @@ export function useRealtimeUpdates() {
                 eventSource.close();
                 eventSourceRef.current = null;
 
-                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+                const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 10000);
                 reconnectAttempts.current++;
 
                 reconnectTimeoutRef.current = globalThis.setTimeout(() => {

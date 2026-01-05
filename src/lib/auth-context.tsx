@@ -1,6 +1,5 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { api } from "./api-client";
@@ -56,7 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refreshUser = useCallback(async () => {
         try {
             const token = localStorage.getItem("token");
-            if (!token) return;
+            if (!token) {
+                return;
+            }
 
             const response = await api.get("/auth/profile");
             setUser(response.data.data.user);
