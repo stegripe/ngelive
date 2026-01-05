@@ -2,7 +2,7 @@
     "name": "ngelive",
     "type": "module",
     "version": "1.0.0-pre",
-    "description": "Live streaming management system - Unified Next.js Application",
+    "description": "A modern web-based platform for managing RTMP live streams with video playlist management, user authentication, and admin controls.",
     "scripts": {
         "dev": "next dev",
         "build": "next build",

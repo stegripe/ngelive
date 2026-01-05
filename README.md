@@ -4,8 +4,6 @@
 
 A modern web-based platform for managing RTMP live streams with video playlist management, user authentication, and admin controls. Built with Next.js, TypeScript, Prisma, and SQLite.
 
----
-
 ## 🚀 Features
 
 - **Live Streaming**: Stream to any RTMP endpoint (YouTube, Twitch, etc.)
@@ -14,8 +12,6 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 - **Real-time Updates**: Live UI updates via Server-Sent Events (SSE)
 - **Responsive Design**: Works on desktop and mobile
 - **SQLite Database**: Lightweight, no external database required
-
----
 
 ## 🛠️ Quick Start
 
@@ -42,18 +38,17 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 
 1. Prerequisites:
    - Node.js 20+
-   - pnpm
+   - pnpm (npm also works)
    - FFmpeg (for streaming)
 
 2. Install and run:
    ```bash
    pnpm install
+   pnpm build
    pnpm db:push
    pnpm db:seed
-   pnpm dev
+   pnpm start
    ```
-
----
 
 ## ⚙️ Configuration (.env)
 
@@ -66,8 +61,6 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 
 > ⚠️ **Important**: Change `JWT_SECRET` and `ADMIN_PASSWORD` before production!
 
----
-
 ## 👤 Default Accounts
 
 | Role | Email | Password |
@@ -75,15 +68,11 @@ A modern web-based platform for managing RTMP live streams with video playlist m
 | Admin | admin@ngelive.stegripe.org | admin123 |
 | User | user@ngelive.stegripe.org | user123 |
 
----
-
 ## 🔧 Troubleshooting
 
 - **Login failed?** Ensure database is initialized (`pnpm db:push && pnpm db:seed`)
 - **Reset everything**: `docker compose down -v && docker compose up -d --build`
 - **Check logs**: `docker compose logs -f app`
-
----
 
 ## 📁 Project Structure
 
@@ -102,6 +91,4 @@ ngelive/
 └── docker-compose.yaml
 ```
 
----
-
-MIT License | [Stegripe Development](https://stegripe.org)
+AGPL-3.0 License | [Stegripe Development](https://stegripe.org)
