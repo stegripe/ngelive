@@ -34,7 +34,7 @@ export function startVideoMonitor(intervalMs = 30_000) {
                                     message: `Video ${v.id} removed because file missing: ${v.path}`,
                                 },
                             })
-                            .catch((e) => {
+                            .catch((e: any) => {
                                 void e;
                             });
                     } catch (e) {
