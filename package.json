@@ -4,7 +4,7 @@
     "version": "1.0.0-pre",
     "description": "A modern web-based platform for managing RTMP live streams with video playlist management, user authentication, and admin controls.",
     "scripts": {
-        "postinstall": "prisma generate",
+        "postinstall": "prisma generate --schema=prisma/schema.prisma",
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
