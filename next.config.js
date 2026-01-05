@@ -23,6 +23,7 @@ const nextConfig = {
         serverActions: {
             bodySizeLimit: "2gb",
         },
+        instrumentationHook: true, // Enable instrumentation for stream restore on startup
     },
 };
 

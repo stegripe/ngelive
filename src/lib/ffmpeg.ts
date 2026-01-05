@@ -537,7 +537,108 @@ export const syncStreamStatuses = async (): Promise<void> => {
 // Run sync every 5 minutes
 setInterval(syncStreamStatuses, 5 * 60 * 1000);
 
+// Restore streams that were marked as running in database (persisted state)
+// This is called on app startup to resume streams that were running before shutdown
+export async function restorePreviousStreams(): Promise<void> {
+    try {
+        // Find all streams marked as streaming in database
+        const streamsToRestore = await prisma.rtmpStream.findMany({
+            where: { isStreaming: true },
+            include: {
+                streamVideos: {
+                    include: { video: true },
+                    orderBy: { order: "asc" },
+                },
+            },
+        });
+
+        if (streamsToRestore.length === 0) {
+            return;
+        }
+
+        console.log("[FFmpeg] Restoring " + streamsToRestore.length + " streams from previous session...");
+
+        for (const stream of streamsToRestore) {
+            try {
+                // Skip if already running in memory
+                if (runningStreams.has(stream.id)) {
+                    continue;
+                }
+
+                // Check if stream has videos
+                if (stream.streamVideos.length === 0) {
+                    console.log("[FFmpeg] Stream " + stream.id + " has no videos, marking offline");
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                    continue;
+                }
+
+                // Validate all video files exist
+                let allVideosExist = true;
+                for (const sv of stream.streamVideos) {
+                    if (!sv.video.path || !fs.existsSync(sv.video.path)) {
+                        console.log("[FFmpeg] Stream " + stream.id + " - video file missing: " + sv.video.path);
+                        allVideosExist = false;
+                        break;
+                    }
+                }
+
+                if (!allVideosExist) {
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                    continue;
+                }
+
+                // Set default playlist mode if needed
+                const playlistMode = stream.playlistMode || "LOOP";
+
+                // Start the stream
+                const success = startFFmpegStream({
+                    id: stream.id,
+                    streamVideos: stream.streamVideos,
+                    playlistMode,
+                    rtmpUrl: stream.rtmpUrl,
+                });
+
+                if (success) {
+                    console.log("[FFmpeg] Restored stream: " + stream.id);
+                } else {
+                    console.log("[FFmpeg] Failed to restore stream: " + stream.id);
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                }
+
+                // Small delay between starts to avoid overwhelming the system
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (error) {
+                console.error("[FFmpeg] Error restoring stream " + stream.id + ":", error);
+                // Mark as not streaming if restore failed
+                try {
+                    await prisma.rtmpStream.update({
+                        where: { id: stream.id },
+                        data: { isStreaming: false },
+                    });
+                } catch (e) {
+                    void e;
+                }
+            }
+        }
+
+        console.log("[FFmpeg] Stream restoration complete");
+    } catch (error) {
+        console.error("[FFmpeg] Error restoring streams:", error);
+    }
+}
+
 // Cleanup function to kill all FFmpeg processes on exit
+// Note: We do NOT update isStreaming to false here - we want to preserve the state
+// so streams can be restored on next startup
 function cleanupOnExit(): void {
     console.log("[FFmpeg] Cleaning up all streams before exit...");
     
