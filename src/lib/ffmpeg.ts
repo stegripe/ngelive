@@ -183,7 +183,7 @@ function streamSingleVideo(streamId: string): void {
     
     // Only log first video or when verbose mode is on
     if (state.videoIndex === 0 || FFMPEG_VERBOSE) {
-        console.log("[FFmpeg] Stream " + streamId + " - Playing: " + videoFilename + " (" + (state.videoIndex + 1) + "/" + state.videoPaths.length + ")");
+        console.log("[FFmpeg] Stream " + streamId + " - Playing: " + videoFilename);
     }
 
     const ffmpegArgs = buildFFmpegArgsForVideo(videoPath, state.rtmpUrl);
@@ -269,9 +269,9 @@ function streamSingleVideo(streamId: string): void {
             }, 500);
             
         } else {
-            // Error occurred
-            if (FFMPEG_VERBOSE || currentState.retryCount === 0) {
-                console.error("[FFmpeg] Stream " + streamId + " - Error: code=" + code + ", signal=" + signal);
+            // Error occurred - only log on first retry attempt
+            if (currentState.retryCount === 0) {
+                console.error("[FFmpeg] Stream " + streamId + " - Error: code=" + code + ", retrying...");
             }
             currentState.retryCount++;
             
