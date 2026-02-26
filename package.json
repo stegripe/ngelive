@@ -35,7 +35,7 @@
         "@stegripe/biomejs-config": "^1.1.0",
         "@types/bcryptjs": "^2.4.6",
         "@types/jsonwebtoken": "^9.0.10",
-        "@types/node": "^20.19.27",
+        "@types/node": "^22.19.13",
         "@types/react": "^18.3.27",
         "@types/react-dom": "^18.3.7",
         "autoprefixer": "^10.4.23",
