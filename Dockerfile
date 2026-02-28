@@ -1,5 +1,5 @@
 # Base image (Debian for Prisma compatibility)
-FROM node:20-bullseye-slim AS base
+FROM node:24-bullseye-slim AS base
 WORKDIR /app
 
 # Install FFmpeg and OpenSSL (libssl1.1)
